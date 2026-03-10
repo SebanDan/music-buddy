@@ -1,0 +1,43 @@
+[project]
+name = "music-to-partoch"
+version = "0.1.0"
+description = "Convert audio music files into separated instrument tracks and generate sheet music automatically."
+readme = "README.md"
+requires-python = ">=3.11"
+license = "MIT"
+authors = [
+    { name = "Dan Seban" }
+]
+
+dependencies = [
+    "basic-pitch>=0.4.0",
+    "demucs>=4.0.1",
+    "librosa>=0.11.0",
+    "music21>=9.9.1",
+    "numpy>=1.26.4",
+    "pretty-midi>=0.2.11",
+    "scipy>=1.17.1",
+    "torch>=2.2.0",
+    "torchaudio>=2.2.0",
+    "soundfile>=0.12.1",
+    "mido>=1.3.2",
+    "tqdm>=4.66.0",
+    "torchcodec>=0.10.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "black>=24.0.0",
+    "ruff>=0.5.0",
+    "ipython>=8.0.0"
+]
+
+[project.scripts]
+music-to-partoch = "music_to_partoch.main:main"
+
+[build-system]
+requires = ["setuptools>=68.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["music_to_partoch*"]
