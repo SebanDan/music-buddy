@@ -1,0 +1,1675 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Demucs Studio</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;700;800&display=swap" rel="stylesheet" />
+  <!-- Verovio : rendu MusicXML → SVG dans le navigateur -->
+  <script src="https://www.verovio.org/javascript/latest/verovio-toolkit-wasm.js" crossorigin="anonymous"></script>
+
+  <style>
+    /* ── Reset & Variables ──────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #0d0d0f;
+      --surface:   #16161a;
+      --border:    #2a2a35;
+      --accent:    #e8ff47;      /* jaune électrique */
+      --accent2:   #ff4f7b;      /* rose vif */
+      --text:      #f0f0f0;
+      --muted:     #606070;
+      --radius:    10px;
+
+      /* couleurs par stem */
+      --col-vocals:  #e8ff47;
+      --col-drums:   #ff4f7b;
+      --col-bass:    #47c8ff;
+      --col-other:   #a78bfa;
+      --col-guitar:  #fb923c;
+      --col-piano:   #34d399;
+    }
+
+    body {
+      font-family: 'Syne', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ── Header ─────────────────────────────────────────────────── */
+    header {
+      padding: 28px 40px 20px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      border-bottom: 1px solid var(--border);
+    }
+    .logo-mark {
+      width: 36px; height: 36px;
+      background: var(--accent);
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .logo-mark svg { width: 20px; height: 20px; }
+    h1 { font-size: 1.4rem; font-weight: 800; letter-spacing: -0.02em; }
+    h1 span { color: var(--accent); }
+    .tag {
+      margin-left: auto;
+      font-family: 'Space Mono', monospace;
+      font-size: 0.7rem;
+      color: var(--muted);
+      border: 1px solid var(--border);
+      padding: 4px 10px;
+      border-radius: 99px;
+    }
+
+    /* ── Main layout ─────────────────────────────────────────────── */
+    main {
+      flex: 1;
+      padding: 40px;
+      max-width: 960px;
+      margin: 0 auto;
+      width: 100%;
+    }
+
+    /* ── Section titles ──────────────────────────────────────────── */
+    .section-title {
+      font-family: 'Space Mono', monospace;
+      font-size: 0.65rem;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 14px;
+    }
+
+    /* ── Drop zone ──────────────────────────────────────────────── */
+    #drop-zone {
+      border: 2px dashed var(--border);
+      border-radius: var(--radius);
+      padding: 60px 40px;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color 0.2s, background 0.2s;
+      position: relative;
+      background: var(--surface);
+    }
+    #drop-zone.drag-over {
+      border-color: var(--accent);
+      background: rgba(232, 255, 71, 0.04);
+    }
+    #drop-zone .drop-icon {
+      font-size: 3rem;
+      margin-bottom: 14px;
+      display: block;
+    }
+    #drop-zone h2 { font-size: 1.1rem; font-weight: 700; margin-bottom: 6px; }
+    #drop-zone p  { color: var(--muted); font-size: 0.85rem; }
+    #drop-zone input[type="file"] {
+      position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%;
+    }
+    #file-name {
+      margin-top: 16px;
+      font-family: 'Space Mono', monospace;
+      font-size: 0.8rem;
+      color: var(--accent);
+      display: none;
+    }
+
+    /* ── YouTube input ───────────────────────────────────────────── */
+    .source-tabs {
+      display: flex;
+      gap: 0;
+      margin-bottom: 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .source-tab {
+      padding: 10px 22px;
+      font-family: 'Space Mono', monospace;
+      font-size: 0.7rem;
+      letter-spacing: 0.08em;
+      cursor: pointer;
+      border: none;
+      background: transparent;
+      color: var(--muted);
+      border-bottom: 2px solid transparent;
+      margin-bottom: -1px;
+      transition: color 0.15s, border-color 0.15s;
+    }
+    .source-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+    .source-panel { display: none; }
+    .source-panel.active { display: block; }
+
+    #yt-input-wrap {
+      background: var(--surface);
+      border: 2px solid var(--border);
+      border-radius: var(--radius);
+      padding: 28px 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+    .yt-label {
+      display: flex; align-items: center; gap: 10px;
+      font-size: 1rem; font-weight: 700;
+    }
+    .yt-label span { font-size: 1.5rem; }
+    #yt-url {
+      width: 100%;
+      padding: 12px 16px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      color: var(--text);
+      font-family: 'Space Mono', monospace;
+      font-size: 0.8rem;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    #yt-url:focus { border-color: var(--accent); }
+    #yt-url::placeholder { color: var(--muted); }
+    .yt-hint {
+      font-family: 'Space Mono', monospace;
+      font-size: 0.65rem;
+      color: var(--muted);
+    }
+
+    /* ── Model selector ─────────────────────────────────────────── */
+    #model-section { margin-top: 36px; }
+    .model-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+      gap: 12px;
+    }
+    .model-card {
+      background: var(--surface);
+      border: 2px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px 18px;
+      cursor: pointer;
+      transition: border-color 0.15s;
+    }
+    .model-card:hover  { border-color: var(--muted); }
+    .model-card.active { border-color: var(--accent); }
+    .model-card input  { display: none; }
+    .model-name  { font-weight: 700; font-size: 0.9rem; margin-bottom: 6px; }
+    .model-stems {
+      display: flex; flex-wrap: wrap; gap: 5px;
+      margin-top: 8px;
+    }
+    .stem-pill {
+      font-family: 'Space Mono', monospace;
+      font-size: 0.6rem;
+      padding: 2px 8px;
+      border-radius: 99px;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.1);
+    }
+
+    /* ── Split button ────────────────────────────────────────────── */
+    #split-btn {
+      margin-top: 32px;
+      width: 100%;
+      padding: 18px;
+      background: var(--accent);
+      color: #000;
+      font-family: 'Syne', sans-serif;
+      font-weight: 800;
+      font-size: 1rem;
+      letter-spacing: 0.02em;
+      border: none;
+      border-radius: var(--radius);
+      cursor: pointer;
+      transition: opacity 0.15s, transform 0.1s;
+    }
+    #split-btn:hover:not(:disabled) { opacity: 0.88; transform: translateY(-1px); }
+    #split-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+
+    /* ── Progress ────────────────────────────────────────────────── */
+    #progress-section { margin-top: 32px; display: none; }
+    .progress-bar-track {
+      height: 6px;
+      background: var(--surface);
+      border-radius: 99px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+    }
+    .progress-bar-fill {
+      height: 100%;
+      background: var(--accent);
+      border-radius: 99px;
+      width: 0%;
+      transition: width 0.4s ease;
+    }
+    .progress-label {
+      font-family: 'Space Mono', monospace;
+      font-size: 0.75rem;
+      color: var(--muted);
+      margin-top: 8px;
+    }
+
+    /* ── Mixer ───────────────────────────────────────────────────── */
+    #mixer-section { margin-top: 40px; display: none; }
+    .mixer-title-row {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 20px;
+    }
+    .mixer-actions {
+      display: flex; gap: 8px;
+    }
+    .mixer-actions button {
+      font-family: 'Space Mono', monospace;
+      font-size: 0.65rem;
+      padding: 6px 14px;
+      border-radius: 99px;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--text);
+      cursor: pointer;
+      transition: border-color 0.15s, color 0.15s;
+    }
+    .mixer-actions button:hover { border-color: var(--accent); color: var(--accent); }
+
+    .tracks-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 14px;
+    }
+
+    /* ── Track card ─────────────────────────────────────────────── */
+    .track-card {
+      background: var(--surface);
+      border: 2px solid var(--border);
+      border-radius: var(--radius);
+      padding: 18px 16px 16px;
+      display: flex; flex-direction: column; gap: 14px;
+      transition: border-color 0.15s;
+      position: relative;
+      overflow: hidden;
+    }
+    .track-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 3px;
+      background: var(--stem-color, #fff);
+    }
+    .track-card.muted {
+      opacity: 0.4;
+    }
+
+    .track-header { display: flex; align-items: center; justify-content: space-between; }
+    .track-name {
+      font-weight: 800;
+      font-size: 0.95rem;
+      text-transform: capitalize;
+      letter-spacing: 0.01em;
+    }
+    .track-icon { font-size: 1.2rem; }
+
+    /* Mute button */
+    .mute-btn {
+      width: 32px; height: 32px;
+      border-radius: 50%;
+      border: 2px solid var(--stem-color, #fff);
+      background: transparent;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: background 0.15s;
+      color: var(--stem-color, #fff);
+      font-size: 0.75rem;
+      font-weight: 700;
+    }
+    .mute-btn:hover      { background: rgba(255,255,255,0.08); }
+    .mute-btn.is-muted   { background: var(--stem-color, #fff); color: #000; }
+
+    /* Volume slider */
+    .volume-wrap { display: flex; flex-direction: column; gap: 6px; }
+    .volume-label {
+      display: flex; align-items: center; justify-content: space-between;
+      font-family: 'Space Mono', monospace;
+      font-size: 0.6rem;
+      color: var(--muted);
+    }
+    .volume-val { color: var(--stem-color, #fff); font-weight: 700; }
+
+    input[type=range] {
+      -webkit-appearance: none;
+      width: 100%;
+      height: 4px;
+      border-radius: 99px;
+      background: var(--border);
+      outline: none;
+      cursor: pointer;
+    }
+    input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 14px; height: 14px;
+      border-radius: 50%;
+      background: var(--stem-color, #fff);
+      cursor: pointer;
+      transition: transform 0.1s;
+    }
+    input[type=range]::-webkit-slider-thumb:hover { transform: scale(1.3); }
+
+    /* EQ sliders (bass / mid / treble) */
+    .eq-wrap { display: flex; flex-direction: column; gap: 6px; }
+    .eq-row   { display: flex; align-items: center; gap: 8px; }
+    .eq-lbl   {
+      font-family: 'Space Mono', monospace;
+      font-size: 0.55rem;
+      color: var(--muted);
+      width: 28px;
+      flex-shrink: 0;
+    }
+
+    /* Play controls */
+    .track-controls { display: flex; gap: 8px; }
+    .ctrl-btn {
+      flex: 1;
+      padding: 8px 0;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--text);
+      font-size: 0.75rem;
+      cursor: pointer;
+      transition: background 0.15s, border-color 0.15s;
+      font-family: 'Space Mono', monospace;
+    }
+    .ctrl-btn:hover { background: rgba(255,255,255,0.05); border-color: var(--muted); }
+    .ctrl-btn.playing {
+      background: rgba(232, 255, 71, 0.1);
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    /* Download */
+    .download-btn {
+      width: 100%;
+      padding: 8px;
+      background: transparent;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--muted);
+      font-family: 'Space Mono', monospace;
+      font-size: 0.6rem;
+      cursor: pointer;
+      text-decoration: none;
+      display: block;
+      text-align: center;
+      transition: border-color 0.15s, color 0.15s;
+    }
+    .download-btn:hover { border-color: var(--stem-color, #fff); color: var(--stem-color, #fff); }
+
+    /* ── Master play bar ─────────────────────────────────────────── */
+    #master-bar {
+      position: sticky;
+      bottom: 0;
+      background: rgba(13,13,15,0.92);
+      backdrop-filter: blur(16px);
+      border-top: 1px solid var(--border);
+      padding: 16px 40px;
+      display: none;
+      align-items: center;
+      gap: 20px;
+    }
+    #master-play {
+      width: 44px; height: 44px;
+      border-radius: 50%;
+      background: var(--accent);
+      border: none;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1rem;
+      color: #000;
+      transition: opacity 0.15s;
+      flex-shrink: 0;
+    }
+    #master-play:hover { opacity: 0.8; }
+    .seek-wrap { flex: 1; display: flex; flex-direction: column; gap: 4px; }
+    #seek-slider {
+      width: 100%;
+      --stem-color: var(--accent);
+    }
+    .time-row {
+      display: flex; justify-content: space-between;
+      font-family: 'Space Mono', monospace;
+      font-size: 0.65rem;
+      color: var(--muted);
+    }
+    .master-vol-wrap {
+      display: flex; align-items: center; gap: 8px;
+      width: 120px;
+      flex-shrink: 0;
+    }
+    .master-vol-wrap span { font-size: 0.9rem; }
+    #master-vol { --stem-color: var(--accent); width: 80px; }
+
+    /* ── Sessions panel ─────────────────────────────────────────── */
+    #sessions-section { margin-bottom: 36px; }
+
+    .sessions-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .session-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 14px 16px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      transition: border-color 0.15s;
+      cursor: pointer;
+    }
+    .session-card:hover { border-color: var(--accent); }
+    .session-icon { font-size: 1.4rem; flex-shrink: 0; }
+    .session-info { flex: 1; min-width: 0; }
+    .session-name {
+      font-weight: 700;
+      font-size: 0.9rem;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .session-meta {
+      font-family: 'Space Mono', monospace;
+      font-size: 0.6rem;
+      color: var(--muted);
+      margin-top: 3px;
+    }
+    .session-stems { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 6px; }
+    .session-del-btn {
+      background: transparent;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--muted);
+      font-size: 0.75rem;
+      width: 28px; height: 28px;
+      cursor: pointer;
+      flex-shrink: 0;
+      transition: border-color 0.15s, color 0.15s;
+    }
+    .session-del-btn:hover { border-color: var(--accent2); color: var(--accent2); }
+    .no-sessions {
+      font-family: 'Space Mono', monospace;
+      font-size: 0.75rem;
+      color: var(--muted);
+      padding: 16px 0;
+      text-align: center;
+    }
+
+    /* ── Save session button ─────────────────────────────────────── */
+    #save-session-btn {
+      margin-top: 16px;
+      padding: 10px 20px;
+      background: transparent;
+      border: 1px solid var(--accent);
+      color: var(--accent);
+      border-radius: var(--radius);
+      font-family: 'Space Mono', monospace;
+      font-size: 0.7rem;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    #save-session-btn:hover { background: rgba(232, 255, 71, 0.08); }
+
+    /* ── New music button ────────────────────────────────────────── */
+    #new-music-btn {
+      margin-top: 16px;
+      margin-left: 10px;
+      padding: 10px 20px;
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      border-radius: var(--radius);
+      font-family: 'Space Mono', monospace;
+      font-size: 0.7rem;
+      cursor: pointer;
+      transition: border-color 0.15s, color 0.15s;
+    }
+    #new-music-btn:hover { border-color: var(--text); color: var(--text); }
+
+    /* ── Sheet music button on track card ───────────────────────── */
+    .sheet-btn {
+      width: 100%;
+      padding: 8px;
+      background: transparent;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--muted);
+      font-family: 'Space Mono', monospace;
+      font-size: 0.6rem;
+      cursor: pointer;
+      text-align: center;
+      transition: border-color 0.15s, color 0.15s, background 0.15s;
+    }
+    .sheet-btn:hover:not(:disabled) {
+      border-color: var(--stem-color, #fff);
+      color: var(--stem-color, #fff);
+    }
+    .sheet-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+    .sheet-btn.loading  { opacity: 0.6; cursor: wait; }
+
+    /* ── Sheet music viewer modal ────────────────────────────────── */
+    #sheet-modal {
+      display: none;
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.85);
+      backdrop-filter: blur(8px);
+      z-index: 300;
+      flex-direction: column;
+    }
+    #sheet-modal.open { display: flex; }
+
+    .sheet-modal-header {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 18px 28px;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface);
+      flex-shrink: 0;
+    }
+    .sheet-modal-title {
+      font-weight: 800;
+      font-size: 1rem;
+      flex: 1;
+    }
+    .sheet-modal-title span {
+      font-family: 'Space Mono', monospace;
+      font-size: 0.7rem;
+      font-weight: 400;
+      color: var(--muted);
+      margin-left: 10px;
+    }
+    .sheet-dl-btn {
+      padding: 8px 18px;
+      background: transparent;
+      border: 1px solid var(--accent);
+      color: var(--accent);
+      border-radius: var(--radius);
+      font-family: 'Space Mono', monospace;
+      font-size: 0.65rem;
+      cursor: pointer;
+      text-decoration: none;
+      transition: background 0.15s;
+    }
+    .sheet-dl-btn:hover { background: rgba(232,255,71,0.08); }
+    .sheet-close-btn {
+      width: 34px; height: 34px;
+      border-radius: 50%;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--muted);
+      font-size: 1rem;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: border-color 0.15s, color 0.15s;
+    }
+    .sheet-close-btn:hover { border-color: var(--text); color: var(--text); }
+
+    .sheet-modal-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 28px;
+      background: #fff;  /* fond blanc pour la partition */
+    }
+    #sheet-svg-container svg {
+      width: 100%;
+      height: auto;
+    }
+    .sheet-status-msg {
+      text-align: center;
+      padding: 60px 0;
+      font-family: 'Space Mono', monospace;
+      font-size: 0.8rem;
+      color: var(--muted);
+      background: var(--bg);
+    }
+    .sheet-pages {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+    .sheet-page {
+      background: white;
+      border-radius: 4px;
+      overflow: hidden;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.15);
+    }
+    .sheet-page svg { width: 100%; height: auto; display: block; }
+
+    /* ── Save modal ──────────────────────────────────────────────── */
+    #save-modal {
+      display: none;
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.7);
+      backdrop-filter: blur(6px);
+      z-index: 200;
+      align-items: center;
+      justify-content: center;
+    }
+    #save-modal.open { display: flex; }
+    .modal-box {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 32px;
+      width: 360px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .modal-box h3 { font-size: 1rem; font-weight: 800; }
+    .modal-box input[type=text] {
+      width: 100%;
+      padding: 10px 14px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      color: var(--text);
+      font-family: 'Syne', sans-serif;
+      font-size: 0.9rem;
+      outline: none;
+    }
+    .modal-box input[type=text]:focus { border-color: var(--accent); }
+    .modal-btns { display: flex; gap: 10px; }
+    .modal-btns button {
+      flex: 1;
+      padding: 10px;
+      border-radius: var(--radius);
+      font-family: 'Syne', sans-serif;
+      font-weight: 700;
+      cursor: pointer;
+      font-size: 0.85rem;
+    }
+    #modal-confirm {
+      background: var(--accent); color: #000; border: none;
+    }
+    #modal-cancel {
+      background: transparent; color: var(--muted); border: 1px solid var(--border);
+    }
+
+    /* ── Error toast ─────────────────────────────────────────────── */
+    #toast {
+      position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%);
+      background: var(--accent2);
+      color: #fff;
+      padding: 12px 22px;
+      border-radius: 99px;
+      font-size: 0.85rem;
+      font-weight: 700;
+      display: none;
+      z-index: 999;
+    }
+    #toast.success { background: #22c55e; }
+  </style>
+</head>
+<body>
+
+<!-- Header -->
+<header>
+  <div class="logo-mark">
+    <svg viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2.5" stroke-linecap="round">
+      <path d="M9 18V5l12-2v13"/>
+      <circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/>
+    </svg>
+  </div>
+  <h1>Demucs <span>Studio</span></h1>
+  <span class="tag">stem splitter</span>
+</header>
+
+<main>
+
+  <!-- 0. Sessions sauvegardées -->
+  <div id="sessions-section">
+    <p class="section-title">Sessions sauvegardées</p>
+    <div class="sessions-list" id="sessions-list">
+      <p class="no-sessions">Chargement…</p>
+    </div>
+  </div>
+
+  <!-- 1. Source audio -->
+  <p class="section-title">01 — Charger une source audio</p>
+
+  <div class="source-tabs">
+    <button class="source-tab active" data-tab="mp3">📁 Fichier MP3</button>
+    <button class="source-tab" data-tab="youtube">▶ Lien YouTube</button>
+  </div>
+
+  <!-- Tab MP3 -->
+  <div class="source-panel active" id="panel-mp3">
+    <div id="drop-zone">
+      <span class="drop-icon">🎵</span>
+      <h2>Glissez votre MP3 ici</h2>
+      <p>ou cliquez pour choisir un fichier</p>
+      <input type="file" id="file-input" accept=".mp3" />
+    </div>
+    <p id="file-name"></p>
+  </div>
+
+  <!-- Tab YouTube -->
+  <div class="source-panel" id="panel-youtube">
+    <div id="yt-input-wrap">
+      <div class="yt-label"><span>▶</span> URL YouTube</div>
+      <input type="url" id="yt-url" placeholder="https://www.youtube.com/watch?v=…" />
+      <p class="yt-hint">Collez le lien de n'importe quelle vidéo YouTube. Le son sera téléchargé automatiquement en MP3.</p>
+    </div>
+  </div>
+
+  <!-- 2. Modèle -->
+  <div id="model-section">
+    <p class="section-title" style="margin-top:36px">02 — Choisir le modèle</p>
+    <div class="model-grid" id="model-grid"></div>
+  </div>
+
+  <!-- 3. Lancer -->
+  <button id="split-btn" disabled>⚡ Séparer les pistes</button>
+
+  <!-- 4. Progress -->
+  <div id="progress-section">
+    <p class="section-title">Traitement en cours…</p>
+    <div class="progress-bar-track">
+      <div class="progress-bar-fill" id="progress-fill"></div>
+    </div>
+    <p class="progress-label" id="progress-label">Initialisation…</p>
+  </div>
+
+  <!-- 5. Mixer -->
+  <div id="mixer-section">
+    <div class="mixer-title-row">
+      <p class="section-title" style="margin:0">03 — Mixer les pistes</p>
+      <div class="mixer-actions">
+        <button id="btn-solo-all">Tout activer</button>
+        <button id="btn-mute-all">Tout muter</button>
+      </div>
+    </div>
+    <div class="tracks-grid" id="tracks-grid"></div>
+    <div>
+      <button id="save-session-btn">💾 Sauvegarder la session</button>
+      <button id="new-music-btn">↩ Nouvelle musique</button>
+    </div>
+  </div>
+
+</main>
+
+<!-- Sheet music viewer modal -->
+<div id="sheet-modal">
+  <div class="sheet-modal-header">
+    <div class="sheet-modal-title">
+      🎼 Partition — <span id="sheet-modal-stem-label">—</span>
+    </div>
+    <a id="sheet-dl-link" class="sheet-dl-btn" download>↓ MusicXML</a>
+    <button class="sheet-close-btn" id="sheet-modal-close">✕</button>
+  </div>
+  <div class="sheet-modal-body" id="sheet-modal-body">
+    <div class="sheet-status-msg" id="sheet-status-msg">Initialisation…</div>
+    <div class="sheet-pages" id="sheet-svg-container"></div>
+  </div>
+</div>
+
+<!-- Save modal -->
+<div id="save-modal">
+  <div class="modal-box">
+    <h3>💾 Sauvegarder la session</h3>
+    <input type="text" id="session-name-input" placeholder="Nom de la session…" maxlength="80" />
+    <div class="modal-btns">
+      <button id="modal-cancel">Annuler</button>
+      <button id="modal-confirm">Sauvegarder</button>
+    </div>
+  </div>
+</div>
+
+<!-- Master play bar -->
+<div id="master-bar">
+  <button id="master-play">▶</button>
+  <div class="seek-wrap">
+    <input type="range" id="seek-slider" min="0" max="100" value="0" step="0.1" />
+    <div class="time-row">
+      <span id="time-current">0:00</span>
+      <span id="time-total">0:00</span>
+    </div>
+  </div>
+  <div class="master-vol-wrap">
+    <span>🔊</span>
+    <input type="range" id="master-vol" min="0" max="1" step="0.01" value="1" />
+  </div>
+</div>
+
+<!-- Error/success toast -->
+<div id="toast"></div>
+
+<!-- ── Scripts ───────────────────────────────────────────────────── -->
+<script>
+// ─── Source tabs ──────────────────────────────────────────────────
+let activeSource = 'mp3'; // 'mp3' | 'youtube'
+
+document.querySelectorAll('.source-tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    activeSource = tab.dataset.tab;
+    document.querySelectorAll('.source-tab').forEach(t => t.classList.toggle('active', t === tab));
+    document.querySelectorAll('.source-panel').forEach(p => {
+      p.classList.toggle('active', p.id === 'panel-' + activeSource);
+    });
+    updateSplitBtn();
+  });
+});
+
+function updateSplitBtn() {
+  const btn = document.getElementById('split-btn');
+  if (activeSource === 'mp3') {
+    btn.disabled = !state.file;
+  } else {
+    const url = document.getElementById('yt-url').value.trim();
+    btn.disabled = !url;
+  }
+}
+
+document.getElementById('yt-url').addEventListener('input', updateSplitBtn);
+
+// ─── State ────────────────────────────────────────────────────────
+const state = {
+  file: null,
+  currentFileName: null,
+  model: 'htdemucs',
+  jobId: null,
+  stems: [],        // [{ name, audioCtx, gainNode, source, buffer, ... }]
+  isPlaying: false,
+  startOffset: 0,
+  startTime: 0,
+  duration: 0,
+};
+
+// Icônes & couleurs par stem
+const STEM_META = {
+  vocals:  { icon: '🎤', color: 'var(--col-vocals)'  },
+  drums:   { icon: '🥁', color: 'var(--col-drums)'   },
+  bass:    { icon: '🎸', color: 'var(--col-bass)'    },
+  other:   { icon: '🎹', color: 'var(--col-other)'   },
+  guitar:  { icon: '🎸', color: 'var(--col-guitar)'  },
+  piano:   { icon: '🎹', color: 'var(--col-piano)'   },
+};
+
+// ─── Modèles ──────────────────────────────────────────────────────
+async function loadModels() {
+  const res  = await fetch('/api/models');
+  const data = await res.json();
+  const grid = document.getElementById('model-grid');
+
+  Object.entries(data).forEach(([key, model]) => {
+    const card = document.createElement('label');
+    card.className = 'model-card' + (key === state.model ? ' active' : '');
+    card.innerHTML = `
+      <input type="radio" name="model" value="${key}" ${key === state.model ? 'checked' : ''} />
+      <div class="model-name">${model.label}</div>
+      <div class="model-stems">
+        ${model.stems.map(s => `<span class="stem-pill" style="border-color:${(STEM_META[s]||{}).color||'#fff'};color:${(STEM_META[s]||{}).color||'#fff'}">${s}</span>`).join('')}
+      </div>
+    `;
+    card.querySelector('input').addEventListener('change', () => {
+      document.querySelectorAll('.model-card').forEach(c => c.classList.remove('active'));
+      card.classList.add('active');
+      state.model = key;
+    });
+    grid.appendChild(card);
+  });
+}
+loadModels();
+
+// ─── Drag & Drop ──────────────────────────────────────────────────
+const dropZone  = document.getElementById('drop-zone');
+const fileInput = document.getElementById('file-input');
+const fileName  = document.getElementById('file-name');
+
+dropZone.addEventListener('dragover',  e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+dropZone.addEventListener('dragleave', ()=> dropZone.classList.remove('drag-over'));
+dropZone.addEventListener('drop', e => {
+  e.preventDefault();
+  dropZone.classList.remove('drag-over');
+  const f = e.dataTransfer.files[0];
+  if (f) setFile(f);
+});
+fileInput.addEventListener('change', e => { if (e.target.files[0]) setFile(e.target.files[0]); });
+
+function setFile(f) {
+  if (!f.name.toLowerCase().endsWith('.mp3')) { showToast('Seuls les MP3 sont acceptés !'); return; }
+  state.file = f;
+  state.currentFileName = f.name;
+  fileName.textContent = '📂 ' + f.name;
+  fileName.style.display = 'block';
+  document.getElementById('split-btn').disabled = false;
+}
+
+// ─── Split ────────────────────────────────────────────────────────
+document.getElementById('split-btn').addEventListener('click', startSplit);
+
+async function startSplit() {
+  const btn = document.getElementById('split-btn');
+  btn.disabled = true;
+
+  // Reset mixer
+  stopAll();
+  document.getElementById('mixer-section').style.display = 'none';
+  document.getElementById('tracks-grid').innerHTML = '';
+  document.getElementById('master-bar').style.display = 'none';
+  state.stems = [];
+
+  if (activeSource === 'youtube') {
+    await startYoutube();
+  } else {
+    await startUpload();
+  }
+}
+
+async function startUpload() {
+  if (!state.file) return;
+  const form = new FormData();
+  form.append('file', state.file);
+  form.append('model', state.model);
+
+  showProgress(5, 'Upload en cours…');
+
+  try {
+    const res  = await fetch('/api/upload', { method: 'POST', body: form });
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+    state.jobId = data.job_id;
+    pollStatus();
+  } catch(e) {
+    showToast(e.message);
+    document.getElementById('split-btn').disabled = false;
+    hideProgress();
+  }
+}
+
+async function startYoutube() {
+  const url = document.getElementById('yt-url').value.trim();
+  if (!url) return;
+
+  showProgress(5, 'Envoi de la requête…');
+
+  try {
+    const res  = await fetch('/api/youtube', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url, model: state.model }),
+    });
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+    state.jobId = data.job_id;
+    state.currentFileName = url;
+    pollStatus();
+  } catch(e) {
+    showToast(e.message);
+    document.getElementById('split-btn').disabled = false;
+    hideProgress();
+  }
+}
+
+function pollStatus() {
+  const interval = setInterval(async () => {
+    try {
+      const res  = await fetch(`/api/status/${state.jobId}`);
+      const data = await res.json();
+
+      if (data.status === 'downloading') {
+        showProgress(data.progress || 10, '⬇ Téléchargement YouTube en cours…');
+      } else if (data.status === 'processing' || data.status === 'pending') {
+        showProgress(data.progress, 'Séparation en cours… (peut prendre quelques minutes)');
+        // Met à jour le nom si on a le titre YouTube
+        if (data.filename && !state.currentFileName?.startsWith('http')) {
+          state.currentFileName = data.filename;
+        } else if (data.filename && state.currentFileName?.startsWith('http')) {
+          state.currentFileName = data.filename; // titre réel récupéré
+        }
+      } else if (data.status === 'done') {
+        clearInterval(interval);
+        if (data.filename) state.currentFileName = data.filename;
+        showProgress(100, 'Terminé !');
+        setTimeout(() => {
+          hideProgress();
+          buildMixer(data.stems);
+          document.getElementById('split-btn').disabled = false;
+          updateSplitBtn();
+        }, 600);
+      } else if (data.status === 'error') {
+        clearInterval(interval);
+        hideProgress();
+        showToast('Erreur : ' + data.error);
+        document.getElementById('split-btn').disabled = false;
+        updateSplitBtn();
+      }
+    } catch(e) {
+      clearInterval(interval);
+      showToast('Erreur réseau');
+    }
+  }, 1500);
+}
+
+// ─── Progress ─────────────────────────────────────────────────────
+function showProgress(pct, label) {
+  document.getElementById('progress-section').style.display = 'block';
+  document.getElementById('progress-fill').style.width = pct + '%';
+  document.getElementById('progress-label').textContent = label;
+}
+function hideProgress() {
+  document.getElementById('progress-section').style.display = 'none';
+}
+
+// ─── Mixer ────────────────────────────────────────────────────────
+const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+const masterGain = audioCtx.createGain();
+masterGain.connect(audioCtx.destination);
+
+async function buildMixer(stemNames) {
+  const grid = document.getElementById('tracks-grid');
+  grid.innerHTML = '';
+  state.stems = [];
+  state.isPlaying = false;
+  state.startOffset = 0;
+
+  for (const name of stemNames) {
+    const meta   = STEM_META[name] || { icon: '🎵', color: '#ffffff' };
+    const gainNode = audioCtx.createGain();
+    const eq = {
+      bass:   createEQ('lowshelf',  200),
+      mid:    createEQ('peaking',  1000),
+      treble: createEQ('highshelf', 4000),
+    };
+    // Chain: gain → bass → mid → treble → master
+    gainNode.connect(eq.bass);
+    eq.bass.connect(eq.mid);
+    eq.mid.connect(eq.treble);
+    eq.treble.connect(masterGain);
+
+    const stem = { name, meta, gainNode, eq, buffer: null, source: null, muted: false, volume: 1 };
+    state.stems.push(stem);
+
+    // Fetch + decode audio
+    fetch(`/audio/${state.jobId}/${name}`)
+      .then(r => r.arrayBuffer())
+      .then(ab => audioCtx.decodeAudioData(ab))
+      .then(buf => {
+        stem.buffer = buf;
+        state.duration = Math.max(state.duration, buf.duration);
+        updateTimeDisplay();
+        // Mark card as ready
+        const card = document.getElementById('card-' + name);
+        if (card) card.classList.add('ready');
+      });
+
+    // Build card
+    const card = document.createElement('div');
+    card.className = 'track-card';
+    card.id = 'card-' + name;
+    card.style.setProperty('--stem-color', meta.color);
+    card.innerHTML = `
+      <div class="track-header">
+        <div>
+          <div class="track-icon">${meta.icon}</div>
+          <div class="track-name">${name}</div>
+        </div>
+        <button class="mute-btn" id="mute-${name}" title="Mute/Unmute">M</button>
+      </div>
+
+      <div class="volume-wrap">
+        <div class="volume-label">
+          <span>VOLUME</span>
+          <span class="volume-val" id="vol-val-${name}">100%</span>
+        </div>
+        <input type="range" class="vol-slider" id="vol-${name}" min="0" max="1" step="0.01" value="1" />
+      </div>
+
+      <div class="eq-wrap">
+        <div class="volume-label"><span>EQ</span></div>
+        <div class="eq-row">
+          <span class="eq-lbl">BASS</span>
+          <input type="range" class="eq-slider" id="eq-bass-${name}" min="-12" max="12" step="0.5" value="0" />
+          <span class="eq-val" id="eq-bass-val-${name}" style="font-family:'Space Mono',monospace;font-size:0.55rem;color:var(--muted);width:28px;text-align:right">0dB</span>
+        </div>
+        <div class="eq-row">
+          <span class="eq-lbl">MID</span>
+          <input type="range" class="eq-slider" id="eq-mid-${name}" min="-12" max="12" step="0.5" value="0" />
+          <span class="eq-val" id="eq-mid-val-${name}" style="font-family:'Space Mono',monospace;font-size:0.55rem;color:var(--muted);width:28px;text-align:right">0dB</span>
+        </div>
+        <div class="eq-row">
+          <span class="eq-lbl">TREBLE</span>
+          <input type="range" class="eq-slider" id="eq-treble-${name}" min="-12" max="12" step="0.5" value="0" />
+          <span class="eq-val" id="eq-treble-val-${name}" style="font-family:'Space Mono',monospace;font-size:0.55rem;color:var(--muted);width:28px;text-align:right">0dB</span>
+        </div>
+      </div>
+
+      <a class="download-btn" href="/audio/${state.jobId}/${name}" download="${name}.wav">
+        ↓ Télécharger ${name}.wav
+      </a>
+      ${name !== 'drums' ? `
+      <button class="sheet-btn" id="sheet-btn-${name}" data-stem="${name}">
+        🎼 Générer la partition
+      </button>` : `
+      <div style="font-family:'Space Mono',monospace;font-size:0.55rem;color:var(--muted);text-align:center;padding:4px 0">
+        Partition non disponible (drums)
+      </div>`}
+    `;
+
+    grid.appendChild(card);
+
+    // Mute
+    card.querySelector(`#mute-${name}`).addEventListener('click', () => toggleMute(name));
+
+    // Volume
+    card.querySelector(`#vol-${name}`).addEventListener('input', e => {
+      const v = parseFloat(e.target.value);
+      stem.volume = v;
+      if (!stem.muted) stem.gainNode.gain.value = v;
+      document.getElementById(`vol-val-${name}`).textContent = Math.round(v * 100) + '%';
+    });
+
+    // EQ
+    ['bass','mid','treble'].forEach(band => {
+      card.querySelector(`#eq-${band}-${name}`).addEventListener('input', e => {
+        const db = parseFloat(e.target.value);
+        stem.eq[band].gain.value = db;
+        document.getElementById(`eq-${band}-val-${name}`).textContent = (db >= 0 ? '+' : '') + db + 'dB';
+      });
+    });
+
+    // Sheet music button (not for drums)
+    if (name !== 'drums') {
+      card.querySelector(`#sheet-btn-${name}`).addEventListener('click', () => {
+        openSheetModal(state.jobId, name);
+      });
+    }
+  }
+
+  document.getElementById('mixer-section').style.display = 'block';
+  document.getElementById('master-bar').style.display = 'flex';
+
+  // Mute all / Solo all — on remplace les boutons pour éviter les listeners en double
+  const muteAllBtn  = document.getElementById('btn-mute-all');
+  const soloAllBtn  = document.getElementById('btn-solo-all');
+  const newMuteBtn  = muteAllBtn.cloneNode(true);
+  const newSoloBtn  = soloAllBtn.cloneNode(true);
+  muteAllBtn.replaceWith(newMuteBtn);
+  soloAllBtn.replaceWith(newSoloBtn);
+
+  newMuteBtn.addEventListener('click', () => {
+    state.stems.forEach(s => { if (!s.muted) toggleMute(s.name); });
+  });
+  newSoloBtn.addEventListener('click', () => {
+    state.stems.forEach(s => { if (s.muted) toggleMute(s.name); });
+  });
+}
+
+function createEQ(type, freq) {
+  const f = audioCtx.createBiquadFilter();
+  f.type      = type;
+  f.frequency.value = freq;
+  f.gain.value      = 0;
+  return f;
+}
+
+// ─── Sheet music ───────────────────────────────────────────────────
+
+// Verovio toolkit instance (chargé une seule fois)
+let verovioReady = false;
+let vrvToolkit   = null;
+
+// Initialise Verovio dès que le WASM est prêt
+window.addEventListener('load', () => {
+  if (typeof verovio !== 'undefined') {
+    verovio.module.onRuntimeInitialized = () => {
+      vrvToolkit = new verovio.toolkit();
+      verovioReady = true;
+    };
+    // Si déjà initialisé (cache)
+    if (verovio.module.calledRun) {
+      vrvToolkit = new verovio.toolkit();
+      verovioReady = true;
+    }
+  }
+});
+
+// Labels lisibles des étapes de génération
+const SHEET_STATUS_LABELS = {
+  pending:      '⏳ En attente…',
+  transcribing: '🎵 Transcription audio → MIDI (Basic Pitch)…',
+  cleaning:     '🧹 Nettoyage des notes…',
+  rendering:    '🎼 Génération de la partition (MusicXML)…',
+  done:         '✓ Terminé',
+  error:        '✗ Erreur',
+};
+
+async function openSheetModal(jobId, stem) {
+  // Ouvrir la modale
+  const modal    = document.getElementById('sheet-modal');
+  const body     = document.getElementById('sheet-modal-body');
+  const container= document.getElementById('sheet-svg-container');
+  const statusEl = document.getElementById('sheet-status-msg');
+  const dlLink   = document.getElementById('sheet-dl-link');
+  const stemLabel= document.getElementById('sheet-modal-stem-label');
+
+  stemLabel.textContent = stem.toUpperCase();
+  dlLink.style.display  = 'none';
+  container.innerHTML   = '';
+  statusEl.textContent  = '⏳ Démarrage de la génération…';
+  statusEl.style.display= 'block';
+  modal.classList.add('open');
+
+  // Vérifier si la partition existe déjà (session rechargée)
+  const existsRes = await fetch(`/api/sheet/file/${jobId}/${stem}`);
+  if (existsRes.ok) {
+    const xmlText = await existsRes.text();
+    statusEl.style.display = 'none';
+    dlLink.href    = `/api/sheet/file/${jobId}/${stem}`;
+    dlLink.download= `${stem}.musicxml`;
+    dlLink.style.display = 'inline-block';
+    renderVerovio(xmlText, container);
+    return;
+  }
+
+  // Lancer la génération
+  const btn = document.getElementById(`sheet-btn-${stem}`);
+  if (btn) { btn.disabled = true; btn.classList.add('loading'); btn.textContent = '⏳ En cours…'; }
+
+  try {
+    const res  = await fetch('/api/sheet/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ job_id: jobId, stem }),
+    });
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+
+    // Polling du statut
+    await pollSheetStatus(data.sheet_job_id, jobId, stem, statusEl, container, dlLink);
+
+  } catch(e) {
+    statusEl.textContent = '✗ Erreur : ' + e.message;
+    if (btn) { btn.disabled = false; btn.classList.remove('loading'); btn.textContent = '🎼 Générer la partition'; }
+  }
+}
+
+async function pollSheetStatus(sheetJobId, jobId, stem, statusEl, container, dlLink) {
+  const btn = document.getElementById(`sheet-btn-${stem}`);
+
+  return new Promise((resolve) => {
+    const iv = setInterval(async () => {
+      try {
+        const res  = await fetch(`/api/sheet/status/${sheetJobId}`);
+        const data = await res.json();
+
+        statusEl.textContent = SHEET_STATUS_LABELS[data.status] || data.status;
+
+        if (data.status === 'done') {
+          clearInterval(iv);
+
+          // Récupère le MusicXML et le rend avec Verovio
+          const xmlRes = await fetch(`/api/sheet/file/${jobId}/${stem}`);
+          const xmlText = await xmlRes.text();
+
+          statusEl.style.display = 'none';
+          dlLink.href    = `/api/sheet/file/${jobId}/${stem}`;
+          dlLink.download= `${stem}.musicxml`;
+          dlLink.style.display = 'inline-block';
+          renderVerovio(xmlText, container);
+
+          if (btn) {
+            btn.disabled = false;
+            btn.classList.remove('loading');
+            btn.textContent = '🎼 Voir la partition';
+          }
+          resolve();
+
+        } else if (data.status === 'error') {
+          clearInterval(iv);
+          statusEl.textContent = '✗ Erreur : ' + (data.error || 'inconnue');
+          if (btn) {
+            btn.disabled = false;
+            btn.classList.remove('loading');
+            btn.textContent = '🎼 Générer la partition';
+          }
+          resolve();
+        }
+      } catch(e) {
+        clearInterval(iv);
+        statusEl.textContent = '✗ Erreur réseau';
+        resolve();
+      }
+    }, 2000);
+  });
+}
+
+function renderVerovio(xmlText, container) {
+  container.innerHTML = '';
+
+  if (!verovioReady || !vrvToolkit) {
+    container.innerHTML = `<div style="padding:20px;color:#666;font-family:monospace;font-size:0.8rem">
+      Verovio non chargé — téléchargez le MusicXML et ouvrez-le dans MuseScore.
+    </div>`;
+    return;
+  }
+
+  try {
+    vrvToolkit.setOptions({
+      pageWidth:  1400,
+      pageHeight: 2400,
+      scale:      45,
+      adjustPageHeight: true,
+      breaks: 'auto',
+    });
+
+    vrvToolkit.loadData(xmlText);
+    const pageCount = vrvToolkit.getPageCount();
+
+    for (let i = 1; i <= pageCount; i++) {
+      const svg = vrvToolkit.renderToSVG(i);
+      const div = document.createElement('div');
+      div.className = 'sheet-page';
+      div.innerHTML = svg;
+      container.appendChild(div);
+    }
+  } catch(e) {
+    container.innerHTML = `<div style="padding:20px;color:#c00;font-family:monospace;font-size:0.8rem">
+      Erreur Verovio : ${e.message}
+    </div>`;
+  }
+}
+
+// Fermer la modale partition
+document.getElementById('sheet-modal-close').addEventListener('click', () => {
+  document.getElementById('sheet-modal').classList.remove('open');
+});
+document.getElementById('sheet-modal').addEventListener('click', e => {
+  if (e.target === document.getElementById('sheet-modal'))
+    document.getElementById('sheet-modal').classList.remove('open');
+});
+
+function toggleMute(name) {
+  const stem = state.stems.find(s => s.name === name);
+  if (!stem) return;
+  stem.muted = !stem.muted;
+  stem.gainNode.gain.value = stem.muted ? 0 : stem.volume;
+  document.getElementById('card-' + name).classList.toggle('muted', stem.muted);
+  document.getElementById('mute-' + name).classList.toggle('is-muted', stem.muted);
+}
+
+// ─── Playback ─────────────────────────────────────────────────────
+document.getElementById('master-play').addEventListener('click', togglePlay);
+
+function togglePlay() {
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+  if (state.isPlaying) {
+    pauseAll();
+  } else {
+    playAll();
+  }
+}
+
+function playAll() {
+  const offset = state.startOffset;
+  state.startTime = audioCtx.currentTime;
+
+  state.stems.forEach(stem => {
+    if (!stem.buffer) return;
+    if (stem.source) { try { stem.source.stop(); } catch(e){} }
+    const src = audioCtx.createBufferSource();
+    src.buffer = stem.buffer;
+    src.connect(stem.gainNode);
+    src.start(0, offset);
+    src.onended = () => {
+      if (state.isPlaying) {
+        state.isPlaying = false;
+        state.startOffset = 0;
+        document.getElementById('master-play').textContent = '▶';
+        updateSeek();
+      }
+    };
+    stem.source = src;
+  });
+
+  state.isPlaying = true;
+  document.getElementById('master-play').textContent = '⏸';
+  requestAnimationFrame(seekLoop);
+}
+
+function pauseAll() {
+  state.startOffset = Math.min(
+    audioCtx.currentTime - state.startTime + state.startOffset,
+    state.duration
+  );
+  state.stems.forEach(stem => {
+    if (stem.source) { try { stem.source.stop(); } catch(e){} stem.source = null; }
+  });
+  state.isPlaying = false;
+  document.getElementById('master-play').textContent = '▶';
+}
+
+function stopAll() {
+  state.stems.forEach(stem => {
+    if (stem.source) { try { stem.source.stop(); } catch(e){} stem.source = null; }
+  });
+  state.isPlaying = false;
+  state.startOffset = 0;
+}
+
+// Seek
+const seekSlider = document.getElementById('seek-slider');
+seekSlider.addEventListener('input', e => {
+  const pct = parseFloat(e.target.value) / 100;
+  state.startOffset = pct * state.duration;
+  if (state.isPlaying) { pauseAll(); playAll(); }
+  updateTimeDisplay();
+});
+
+function seekLoop() {
+  if (!state.isPlaying) return;
+  updateSeek();
+  requestAnimationFrame(seekLoop);
+}
+
+function updateSeek() {
+  const elapsed = state.isPlaying
+    ? audioCtx.currentTime - state.startTime + state.startOffset
+    : state.startOffset;
+  const pct = state.duration ? (elapsed / state.duration) * 100 : 0;
+  seekSlider.value = Math.min(pct, 100);
+  document.getElementById('time-current').textContent = formatTime(elapsed);
+}
+
+function updateTimeDisplay() {
+  document.getElementById('time-total').textContent = formatTime(state.duration);
+}
+
+function formatTime(s) {
+  if (!s || isNaN(s)) return '0:00';
+  const m = Math.floor(s / 60);
+  const sec = Math.floor(s % 60);
+  return `${m}:${sec.toString().padStart(2, '0')}`;
+}
+
+// Master volume
+document.getElementById('master-vol').addEventListener('input', e => {
+  masterGain.gain.value = parseFloat(e.target.value);
+});
+
+// ─── Sessions ─────────────────────────────────────────────────────
+async function loadSessionsList() {
+  try {
+    const res  = await fetch('/api/sessions');
+    const list = await res.json();
+    renderSessionsList(list);
+  } catch(e) {
+    document.getElementById('sessions-list').innerHTML =
+      '<p class="no-sessions">Impossible de charger les sessions.</p>';
+  }
+}
+
+function renderSessionsList(sessions) {
+  const container = document.getElementById('sessions-list');
+  if (!sessions.length) {
+    container.innerHTML = '<p class="no-sessions">Aucune session sauvegardée — séparez une musique pour commencer.</p>';
+    return;
+  }
+
+  container.innerHTML = '';
+  // Plus récente en premier
+  [...sessions].reverse().forEach(sess => {
+    const card = document.createElement('div');
+    card.className = 'session-card';
+    card.innerHTML = `
+      <div class="session-icon">🎛️</div>
+      <div class="session-info">
+        <div class="session-name">${sess.name}</div>
+        <div class="session-meta">${sess.model} · ${sess.saved_at}</div>
+        <div class="session-stems">
+          ${sess.stems.map(s => {
+            const color = (STEM_META[s] || {}).color || '#fff';
+            return `<span class="stem-pill" style="border-color:${color};color:${color}">${s}</span>`;
+          }).join('')}
+        </div>
+      </div>
+      <button class="session-del-btn" title="Supprimer" data-id="${sess.session_id}">✕</button>
+    `;
+
+    // Charger la session en cliquant sur la carte (sauf sur le bouton supprimer)
+    card.addEventListener('click', e => {
+      if (e.target.classList.contains('session-del-btn')) return;
+      loadSession(sess);
+    });
+
+    // Supprimer
+    card.querySelector('.session-del-btn').addEventListener('click', async e => {
+      e.stopPropagation();
+      if (!confirm(`Supprimer la session "${sess.name}" ?\n(Les fichiers WAV seront conservés)`)) return;
+      await fetch(`/api/sessions/delete/${sess.session_id}`, { method: 'DELETE' });
+      loadSessionsList();
+    });
+
+    container.appendChild(card);
+  });
+}
+
+async function loadSession(sess) {
+  // Stop tout ce qui joue
+  stopAll();
+  state.stems = [];
+  state.duration = 0;
+  state.startOffset = 0;
+
+  // Met à jour le job courant
+  state.jobId = sess.job_id;
+
+  // Cache le formulaire d'upload, montre le mixer
+  document.getElementById('progress-section').style.display = 'none';
+  document.getElementById('mixer-section').style.display    = 'none';
+  document.getElementById('master-bar').style.display       = 'none';
+  document.getElementById('tracks-grid').innerHTML          = '';
+
+  showToast(`Chargement de "${sess.name}"…`, false);
+  await buildMixer(sess.stems);
+  showToast(`✓ Session "${sess.name}" chargée !`, true);
+}
+
+// ── Bouton "Sauvegarder la session" ────────────────────────────────
+document.getElementById('save-session-btn').addEventListener('click', () => {
+  if (!state.jobId) return;
+  // Pré-remplir avec le nom du fichier sans extension si dispo
+  const input = document.getElementById('session-name-input');
+  input.value = state.currentFileName
+    ? state.currentFileName.replace(/\.mp3$/i, '')
+    : '';
+  document.getElementById('save-modal').classList.add('open');
+  input.focus();
+});
+
+document.getElementById('modal-cancel').addEventListener('click', () => {
+  document.getElementById('save-modal').classList.remove('open');
+});
+
+document.getElementById('modal-confirm').addEventListener('click', async () => {
+  const name = document.getElementById('session-name-input').value.trim() || 'Sans titre';
+  document.getElementById('save-modal').classList.remove('open');
+
+  try {
+    const res  = await fetch('/api/sessions/save', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        job_id: state.jobId,
+        name,
+        model:  state.model,
+        stems:  state.stems.map(s => s.name),
+      }),
+    });
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+    showToast('✓ Session sauvegardée !', true);
+    loadSessionsList();   // Rafraîchit le panneau
+  } catch(e) {
+    showToast('Erreur : ' + e.message);
+  }
+});
+
+// Fermer le modal en cliquant hors de la box
+document.getElementById('save-modal').addEventListener('click', e => {
+  if (e.target === document.getElementById('save-modal'))
+    document.getElementById('save-modal').classList.remove('open');
+});
+
+// Valider avec Entrée
+document.getElementById('session-name-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') document.getElementById('modal-confirm').click();
+});
+
+// ── Bouton "Nouvelle musique" ───────────────────────────────────────
+document.getElementById('new-music-btn').addEventListener('click', () => {
+  stopAll();
+  state.stems     = [];
+  state.duration  = 0;
+  state.startOffset = 0;
+  state.jobId     = null;
+  state.file      = null;
+  state.currentFileName = null;
+
+  document.getElementById('mixer-section').style.display   = 'none';
+  document.getElementById('master-bar').style.display      = 'none';
+  document.getElementById('progress-section').style.display= 'none';
+  document.getElementById('tracks-grid').innerHTML         = '';
+  document.getElementById('file-name').style.display       = 'none';
+  document.getElementById('file-name').textContent         = '';
+  document.getElementById('split-btn').disabled            = true;
+  document.getElementById('file-input').value              = '';
+  document.getElementById('yt-url').value                  = '';
+  document.getElementById('seek-slider').value             = 0;
+  document.getElementById('time-current').textContent      = '0:00';
+  document.getElementById('time-total').textContent        = '0:00';
+  document.getElementById('master-play').textContent       = '▶';
+
+  // Scroll vers le haut
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+});
+
+// Charger les sessions au démarrage
+loadSessionsList();
+
+// ─── Toast ────────────────────────────────────────────────────────
+function showToast(msg, success = false) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className   = success ? 'success' : '';
+  t.style.display = 'block';
+  setTimeout(() => { t.style.display = 'none'; }, 3500);
+}
+</script>
+</body>
+</html>

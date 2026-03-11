@@ -1,0 +1,28 @@
+{
+  "9d60074e-e942-4597-86d4-27e933beb199": {
+    "session_id": "9d60074e-e942-4597-86d4-27e933beb199",
+    "job_id": "1512e23d-0118-4ad7-9640-3e0bc36cdd9c",
+    "name": "song",
+    "model": "htdemucs",
+    "stems": [
+      "vocals",
+      "drums",
+      "bass",
+      "other"
+    ],
+    "saved_at": " 11/03/2026 11:26"
+  },
+  "34c51891-4395-4c6d-820a-2769fa979f90": {
+    "session_id": "34c51891-4395-4c6d-820a-2769fa979f90",
+    "job_id": "58c8ea66-0a36-4c9d-bb5d-2196593c06a1",
+    "name": "Taylor Swift - The Fate of Ophelia",
+    "model": "htdemucs",
+    "stems": [
+      "bass",
+      "drums",
+      "other",
+      "vocals"
+    ],
+    "saved_at": "11/03/2026 14:28"
+  }
+}
