@@ -1,4 +1,4 @@
-# 🎵 Demucs Studio
+# 🎵 Music Buddy
 
 Webapp Python pour séparer les pistes audio avec [Demucs](https://github.com/facebookresearch/demucs).
 

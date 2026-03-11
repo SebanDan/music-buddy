@@ -14,3 +14,6 @@ test/
 *.mp3
 *.wav
 .ruff_cache
+sessions/
+separated/
+uploads/
