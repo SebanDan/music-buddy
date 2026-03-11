@@ -18,8 +18,8 @@ UPLOAD_FOLDER = Path("uploads")
 OUTPUT_FOLDER = Path("separated")
 CONFIG_FOLDER = Path("config")
 SESSIONS_FILE = Path("sessions/sessions.json")  # index de toutes les sessions
-UPLOAD_FOLDER.mkdir(exist_ok=True)
-OUTPUT_FOLDER.mkdir(exist_ok=True)
+# UPLOAD_FOLDER.mkdir(exist_ok=True)
+# OUTPUT_FOLDER.mkdir(exist_ok=True)
 TEMPLATES_FOLDER = Path("templates")
 
 # Modèles Demucs disponibles et leurs stems
