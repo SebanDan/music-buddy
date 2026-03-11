@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Demucs Studio</title>
+  <title>Music Buddy</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;700;800&display=swap" rel="stylesheet" />
   <!-- Verovio : rendu MusicXML → SVG dans le navigateur -->
@@ -539,9 +539,13 @@
     }
     #new-music-btn:hover { border-color: var(--text); color: var(--text); }
 
-    /* ── Sheet music button on track card ───────────────────────── */
+    .sheet-actions {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+    }
     .sheet-btn {
-      width: 100%;
+      flex: 1;
       padding: 8px;
       background: transparent;
       border: 1px solid var(--border);
@@ -559,6 +563,20 @@
     }
     .sheet-btn:disabled { opacity: 0.3; cursor: not-allowed; }
     .sheet-btn.loading  { opacity: 0.6; cursor: wait; }
+
+    .sheet-view-btn {
+      width: 32px; height: 32px;
+      flex-shrink: 0;
+      background: transparent;
+      border: 1px solid var(--stem-color, #fff);
+      border-radius: 6px;
+      color: var(--stem-color, #fff);
+      font-size: 0.9rem;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: background 0.15s;
+    }
+    .sheet-view-btn:hover { background: rgba(255,255,255,0.08); }
 
     /* ── Sheet music viewer modal ────────────────────────────────── */
     #sheet-modal {
@@ -1153,9 +1171,14 @@ async function buildMixer(stemNames) {
         ↓ Télécharger ${name}.wav
       </a>
       ${name !== 'drums' ? `
-      <button class="sheet-btn" id="sheet-btn-${name}" data-stem="${name}">
-        🎼 Générer la partition
-      </button>` : `
+      <div class="sheet-actions" id="sheet-actions-${name}">
+        <button class="sheet-btn" id="sheet-btn-${name}" data-stem="${name}">
+          🎼 Générer
+        </button>
+        <button class="sheet-view-btn" id="sheet-view-btn-${name}" data-stem="${name}" style="display:none" title="Visualiser la partition">
+          👁
+        </button>
+      </div>` : `
       <div style="font-family:'Space Mono',monospace;font-size:0.55rem;color:var(--muted);text-align:center;padding:4px 0">
         Partition non disponible (drums)
       </div>`}
@@ -1183,10 +1206,22 @@ async function buildMixer(stemNames) {
       });
     });
 
-    // Sheet music button (not for drums)
+    // Sheet music buttons (not for drums)
     if (name !== 'drums') {
       card.querySelector(`#sheet-btn-${name}`).addEventListener('click', () => {
-        openSheetModal(state.jobId, name);
+        generateSheet(state.jobId, name);
+      });
+      card.querySelector(`#sheet-view-btn-${name}`).addEventListener('click', () => {
+        openSheetViewer(state.jobId, name);
+      });
+      // Si partition déjà présente (session rechargée), afficher le bouton œil
+      fetch(`/api/sheet/file/${state.jobId}/${name}`, { method: 'HEAD' }).then(r => {
+        if (r.ok) {
+          const viewBtn = card.querySelector(`#sheet-view-btn-${name}`);
+          const genBtn  = card.querySelector(`#sheet-btn-${name}`);
+          if (viewBtn) viewBtn.style.display = 'flex';
+          if (genBtn)  genBtn.textContent = '🎼 Regénérer';
+        }
       });
     }
   }
@@ -1224,14 +1259,12 @@ function createEQ(type, freq) {
 let verovioReady = false;
 let vrvToolkit   = null;
 
-// Initialise Verovio dès que le WASM est prêt
 window.addEventListener('load', () => {
   if (typeof verovio !== 'undefined') {
     verovio.module.onRuntimeInitialized = () => {
       vrvToolkit = new verovio.toolkit();
       verovioReady = true;
     };
-    // Si déjà initialisé (cache)
     if (verovio.module.calledRun) {
       vrvToolkit = new verovio.toolkit();
       verovioReady = true;
@@ -1239,47 +1272,33 @@ window.addEventListener('load', () => {
   }
 });
 
-// Labels lisibles des étapes de génération
 const SHEET_STATUS_LABELS = {
   pending:      '⏳ En attente…',
   transcribing: '🎵 Transcription audio → MIDI (Basic Pitch)…',
   cleaning:     '🧹 Nettoyage des notes…',
-  rendering:    '🎼 Génération de la partition (MusicXML)…',
+  rendering:    '🎼 Génération MusicXML…',
   done:         '✓ Terminé',
   error:        '✗ Erreur',
 };
 
-async function openSheetModal(jobId, stem) {
-  // Ouvrir la modale
-  const modal    = document.getElementById('sheet-modal');
-  const body     = document.getElementById('sheet-modal-body');
-  const container= document.getElementById('sheet-svg-container');
-  const statusEl = document.getElementById('sheet-status-msg');
-  const dlLink   = document.getElementById('sheet-dl-link');
-  const stemLabel= document.getElementById('sheet-modal-stem-label');
+// ── Étape 1 : générer (sans ouvrir la modale) ──────────────────────
+async function generateSheet(jobId, stem) {
+  const btn     = document.getElementById(`sheet-btn-${stem}`);
+  const viewBtn = document.getElementById(`sheet-view-btn-${stem}`);
 
-  stemLabel.textContent = stem.toUpperCase();
-  dlLink.style.display  = 'none';
-  container.innerHTML   = '';
-  statusEl.textContent  = '⏳ Démarrage de la génération…';
-  statusEl.style.display= 'block';
-  modal.classList.add('open');
-
-  // Vérifier si la partition existe déjà (session rechargée)
+  // Si déjà générée, ouvrir directement
   const existsRes = await fetch(`/api/sheet/file/${jobId}/${stem}`);
   if (existsRes.ok) {
-    const xmlText = await existsRes.text();
-    statusEl.style.display = 'none';
-    dlLink.href    = `/api/sheet/file/${jobId}/${stem}`;
-    dlLink.download= `${stem}.musicxml`;
-    dlLink.style.display = 'inline-block';
-    renderVerovio(xmlText, container);
+    btn.textContent = '🎼 Regénérer';
+    viewBtn.style.display = 'flex';
+    showToast('Partition déjà disponible — cliquez sur 👁 pour la voir.', true);
     return;
   }
 
-  // Lancer la génération
-  const btn = document.getElementById(`sheet-btn-${stem}`);
-  if (btn) { btn.disabled = true; btn.classList.add('loading'); btn.textContent = '⏳ En cours…'; }
+  btn.disabled = true;
+  btn.classList.add('loading');
+  btn.textContent = '⏳…';
+  viewBtn.style.display = 'none';
 
   try {
     const res  = await fetch('/api/sheet/generate', {
@@ -1290,17 +1309,20 @@ async function openSheetModal(jobId, stem) {
     const data = await res.json();
     if (data.error) throw new Error(data.error);
 
-    // Polling du statut
-    await pollSheetStatus(data.sheet_job_id, jobId, stem, statusEl, container, dlLink);
+    // Polling silencieux — on met juste à jour le bouton
+    await pollSheetGeneration(data.sheet_job_id, stem);
 
   } catch(e) {
-    statusEl.textContent = '✗ Erreur : ' + e.message;
-    if (btn) { btn.disabled = false; btn.classList.remove('loading'); btn.textContent = '🎼 Générer la partition'; }
+    showToast('Erreur partition : ' + e.message);
+    btn.disabled = false;
+    btn.classList.remove('loading');
+    btn.textContent = '🎼 Générer';
   }
 }
 
-async function pollSheetStatus(sheetJobId, jobId, stem, statusEl, container, dlLink) {
-  const btn = document.getElementById(`sheet-btn-${stem}`);
+async function pollSheetGeneration(sheetJobId, stem) {
+  const btn     = document.getElementById(`sheet-btn-${stem}`);
+  const viewBtn = document.getElementById(`sheet-view-btn-${stem}`);
 
   return new Promise((resolve) => {
     const iv = setInterval(async () => {
@@ -1308,45 +1330,67 @@ async function pollSheetStatus(sheetJobId, jobId, stem, statusEl, container, dlL
         const res  = await fetch(`/api/sheet/status/${sheetJobId}`);
         const data = await res.json();
 
-        statusEl.textContent = SHEET_STATUS_LABELS[data.status] || data.status;
+        // Mise à jour du bouton avec le statut courant
+        if (data.status !== 'done' && data.status !== 'error') {
+          btn.textContent = SHEET_STATUS_LABELS[data.status] || '⏳…';
+        }
 
         if (data.status === 'done') {
           clearInterval(iv);
-
-          // Récupère le MusicXML et le rend avec Verovio
-          const xmlRes = await fetch(`/api/sheet/file/${jobId}/${stem}`);
-          const xmlText = await xmlRes.text();
-
-          statusEl.style.display = 'none';
-          dlLink.href    = `/api/sheet/file/${jobId}/${stem}`;
-          dlLink.download= `${stem}.musicxml`;
-          dlLink.style.display = 'inline-block';
-          renderVerovio(xmlText, container);
-
-          if (btn) {
-            btn.disabled = false;
-            btn.classList.remove('loading');
-            btn.textContent = '🎼 Voir la partition';
-          }
+          btn.disabled = false;
+          btn.classList.remove('loading');
+          btn.textContent = '🎼 Regénérer';
+          viewBtn.style.display = 'flex';
+          showToast(`✓ Partition "${stem}" prête — cliquez sur 👁 pour la voir.`, true);
           resolve();
 
         } else if (data.status === 'error') {
           clearInterval(iv);
-          statusEl.textContent = '✗ Erreur : ' + (data.error || 'inconnue');
-          if (btn) {
-            btn.disabled = false;
-            btn.classList.remove('loading');
-            btn.textContent = '🎼 Générer la partition';
-          }
+          btn.disabled = false;
+          btn.classList.remove('loading');
+          btn.textContent = '🎼 Générer';
+          showToast('Erreur génération : ' + (data.error || 'inconnue'));
           resolve();
         }
       } catch(e) {
         clearInterval(iv);
-        statusEl.textContent = '✗ Erreur réseau';
+        btn.disabled = false;
+        btn.classList.remove('loading');
+        btn.textContent = '🎼 Générer';
         resolve();
       }
     }, 2000);
   });
+}
+
+// ── Étape 2 : visualiser (ouvre la modale) ─────────────────────────
+async function openSheetViewer(jobId, stem) {
+  const modal    = document.getElementById('sheet-modal');
+  const container= document.getElementById('sheet-svg-container');
+  const statusEl = document.getElementById('sheet-status-msg');
+  const dlLink   = document.getElementById('sheet-dl-link');
+  const stemLabel= document.getElementById('sheet-modal-stem-label');
+
+  stemLabel.textContent  = stem.toUpperCase();
+  dlLink.style.display   = 'none';
+  container.innerHTML    = '';
+  statusEl.textContent   = '⏳ Chargement…';
+  statusEl.style.display = 'block';
+  modal.classList.add('open');
+
+  try {
+    const xmlRes = await fetch(`/api/sheet/file/${jobId}/${stem}`);
+    if (!xmlRes.ok) throw new Error('Fichier partition introuvable');
+    const xmlText = await xmlRes.text();
+
+    statusEl.style.display = 'none';
+    dlLink.href    = `/api/sheet/file/${jobId}/${stem}`;
+    dlLink.download= `${stem}.musicxml`;
+    dlLink.style.display = 'inline-block';
+    renderVerovio(xmlText, container);
+  } catch(e) {
+    statusEl.textContent = '✗ ' + e.message;
+  }
 }
 
 function renderVerovio(xmlText, container) {
@@ -1361,21 +1405,15 @@ function renderVerovio(xmlText, container) {
 
   try {
     vrvToolkit.setOptions({
-      pageWidth:  1400,
-      pageHeight: 2400,
-      scale:      45,
-      adjustPageHeight: true,
-      breaks: 'auto',
+      pageWidth: 1400, pageHeight: 2400,
+      scale: 45, adjustPageHeight: true, breaks: 'auto',
     });
-
     vrvToolkit.loadData(xmlText);
     const pageCount = vrvToolkit.getPageCount();
-
     for (let i = 1; i <= pageCount; i++) {
-      const svg = vrvToolkit.renderToSVG(i);
       const div = document.createElement('div');
       div.className = 'sheet-page';
-      div.innerHTML = svg;
+      div.innerHTML = vrvToolkit.renderToSVG(i);
       container.appendChild(div);
     }
   } catch(e) {
@@ -1385,7 +1423,6 @@ function renderVerovio(xmlText, container) {
   }
 }
 
-// Fermer la modale partition
 document.getElementById('sheet-modal-close').addEventListener('click', () => {
   document.getElementById('sheet-modal').classList.remove('open');
 });
