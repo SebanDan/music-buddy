@@ -1,5 +1,6 @@
 import os
 import subprocess
+
 import pretty_midi
 from basic_pitch.inference import predict
 from music21 import converter
@@ -12,22 +13,13 @@ STEMS = ["vocals", "drums", "bass", "other"]
 
 def run_demucs(audio_path):
     print("Separating instruments with Demucs...")
-    subprocess.run([
-        "demucs",
-        "--out",
-        OUTPUT_DIR,
-        audio_path
-    ])
+    subprocess.run(["demucs", "--out", OUTPUT_DIR, audio_path])
 
 
 def find_stems(audio_path):
     song_name = os.path.splitext(os.path.basename(audio_path))[0]
 
-    stem_dir = os.path.join(
-        OUTPUT_DIR,
-        "htdemucs",
-        song_name
-    )
+    stem_dir = os.path.join(OUTPUT_DIR, "htdemucs", song_name)
 
     stems = {}
 
@@ -80,10 +72,7 @@ def clean_midi(midi_files):
 
             instrument.notes = cleaned_notes
 
-        cleaned_path = os.path.join(
-            OUTPUT_DIR,
-            f"{stem}_clean.mid"
-        )
+        cleaned_path = os.path.join(OUTPUT_DIR, f"{stem}_clean.mid")
 
         midi.write(cleaned_path)
 
@@ -102,10 +91,7 @@ def midi_to_sheet(cleaned_midis):
 
         score = converter.parse(path)
 
-        xml_path = os.path.join(
-            OUTPUT_DIR,
-            f"{stem}.musicxml"
-        )
+        xml_path = os.path.join(OUTPUT_DIR, f"{stem}.musicxml")
 
         score.write("musicxml", xml_path)
 

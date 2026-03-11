@@ -10,3 +10,7 @@ wheels/
 .venv
 output/
 data/
+test/
+*.mp3
+*.wav
+.ruff_cache
