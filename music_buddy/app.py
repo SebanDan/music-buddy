@@ -12,6 +12,7 @@ Lancement :
     uv run python app.py
 """
 
+import json
 import logging
 from pathlib import Path
 
@@ -22,11 +23,8 @@ from flask import Flask, render_template
 BASE_DIR = Path(__file__).parent
 
 DATABASE_FOLDER = BASE_DIR / "database"
-# Dossiers de données (relatifs au répertoire de lancement)
-UPLOAD_FOLDER = (
-    DATABASE_FOLDER / "uploads"
-)  # MP3 temporaires (supprimés après traitement)
-OUTPUT_FOLDER = DATABASE_FOLDER / "separated"  # WAV séparés + MIDI + MusicXML
+UPLOAD_FOLDER = DATABASE_FOLDER / "uploads"
+OUTPUT_FOLDER = DATABASE_FOLDER / "separated"
 SESSIONS_FILE = DATABASE_FOLDER / "sessions" / "sessions.json"
 FRONT_FOLDER = BASE_DIR / "front"
 CONFIG_FOLDER = BASE_DIR / "config"
@@ -58,6 +56,7 @@ def create_app() -> Flask:
         UPLOAD_FOLDER=str(UPLOAD_FOLDER),
         OUTPUT_FOLDER=str(OUTPUT_FOLDER),
         SESSIONS_FILE=str(SESSIONS_FILE),
+        MODELS=json.load((CONFIG_FOLDER / "models.json").open("rb")),
         MAX_CONTENT_LENGTH=200 * 1024 * 1024,  # 200 MB max upload
     )
 
@@ -66,9 +65,8 @@ def create_app() -> Flask:
     OUTPUT_FOLDER.mkdir(exist_ok=True)
 
     # Enregistrement des blueprints
-    app.register_blueprint(audio_bp)
-    app.register_blueprint(sessions_bp)
-    app.register_blueprint(sheets_bp)
+    for blue_print in [audio_bp, sessions_bp, sheets_bp]:
+        app.register_blueprint(blue_print)
 
     # Route principale
     @app.route("/")

@@ -15,40 +15,24 @@ from pathlib import Path
 
 import api.services.music_splitter as splitter_service
 import api.services.youtube_manager as youtube_service
-from api.models.job import Job
+from api.models.job import SplitterJob
 from flask import Blueprint, current_app, jsonify, request, send_from_directory
 
 audio_bp = Blueprint("audio", __name__)
 
-# Stockage en mémoire des jobs de séparation { job_id: Job }
+# Stockage en mémoire des jobs de séparation { job_id: SplitterJob }
 # Note : réinitialisé au redémarrage du serveur.
 # Pour de la persistence, remplacer par une vraie DB.
-jobs: dict[str, Job] = {}
+jobs: dict[str, SplitterJob] = {}
 
 # Stems pour lesquels la partition n'a pas de sens (pas de hauteur tonale)
 STEMS_NO_SHEET = {"drums"}
-
-# Modèles Demucs disponibles
-MODELS = {
-    "htdemucs": {
-        "label": "HT Demucs (4 pistes, rapide)",
-        "stems": ["vocals", "drums", "bass", "other"],
-    },
-    "htdemucs_6s": {
-        "label": "HT Demucs 6 stems (guitare + piano)",
-        "stems": ["vocals", "drums", "bass", "other", "guitar", "piano"],
-    },
-    "mdx_extra": {
-        "label": "MDX Extra (4 pistes, haute qualité)",
-        "stems": ["vocals", "drums", "bass", "other"],
-    },
-}
 
 
 @audio_bp.route("/api/models")
 def get_models():
     """Retourne la liste des modèles Demucs disponibles avec leurs stems."""
-    return jsonify(MODELS)
+    return jsonify(current_app.config["MODELS"])
 
 
 @audio_bp.route("/api/upload", methods=["POST"])
@@ -74,7 +58,7 @@ def upload():
         return jsonify({"error": "Nom de fichier vide"}), 400
     if not file.filename.lower().endswith(".mp3"):
         return jsonify({"error": "Seuls les fichiers MP3 sont acceptés"}), 400
-    if model not in MODELS:
+    if model not in current_app.config["MODELS"]:
         return jsonify({"error": f"Modèle inconnu : {model}"}), 400
 
     job_id = str(uuid.uuid4())
@@ -82,7 +66,7 @@ def upload():
     input_path = upload_dir / f"{job_id}.mp3"
     file.save(input_path)
 
-    job = Job(job_id=job_id, model=model, filename=file.filename)
+    job = SplitterJob(job_id=job_id, model=model, filename=file.filename)
     jobs[job_id] = job
 
     threading.Thread(
@@ -115,14 +99,14 @@ def youtube():
         return jsonify({"error": "URL manquante"}), 400
     if not ("youtube.com" in url or "youtu.be" in url):
         return jsonify({"error": "Seules les URLs YouTube sont acceptées"}), 400
-    if model not in MODELS:
+    if model not in current_app.config["MODELS"]:
         return jsonify({"error": f"Modèle inconnu : {model}"}), 400
 
     job_id = str(uuid.uuid4())
     upload_dir = Path(current_app.config["UPLOAD_FOLDER"])
     input_path = upload_dir / f"{job_id}.mp3"
 
-    job = Job(job_id=job_id, model=model, filename=url)
+    job = SplitterJob(job_id=job_id, model=model, filename=url)
     jobs[job_id] = job
 
     threading.Thread(

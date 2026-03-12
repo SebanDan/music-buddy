@@ -7,10 +7,33 @@ Utilisées comme source de vérité pour le stockage en mémoire dans les servic
 
 from dataclasses import dataclass, field
 from typing import List, Optional
+from uuid import uuid4
 
 
 @dataclass
 class Job:
+
+    uuid: str = field(default_factory=lambda: str(uuid4()))
+    status: str = "pending"
+    progress: int = 0
+    error: Optional[str] = None
+
+    @classmethod
+    def progress_hook(self, info):
+        if info["status"] == "downloading":
+            downloaded = info.get("downloaded_bytes", 0)
+            total = info.get("total_bytes") or info.get("total_bytes_estimate")
+
+            if total:
+                percent = downloaded / total * 100
+                self.progress = 10 + percent * 0.8  # téléchargement = 10→90%
+
+        elif info["status"] == "finished":
+            self.progress = 90
+
+
+@dataclass
+class SplitterJob(Job):
     """
     Représente un job de séparation audio (Demucs).
 
@@ -19,13 +42,10 @@ class Job:
                                                               └→ error
     """
 
-    job_id: str
-    model: str
-    filename: str  # Nom du fichier MP3 ou titre YouTube
-    status: str = "pending"
-    progress: int = 0
+    job_id: str = field(default_factory=lambda: str(uuid4()))
+    model: str = ""
+    filename: str = ""
     stems: List[str] = field(default_factory=list)
-    error: Optional[str] = None
 
     def to_dict(self) -> dict:
         return {
@@ -40,7 +60,7 @@ class Job:
 
 
 @dataclass
-class SheetJob:
+class SheetJob(Job):
     """
     Représente un job de génération de partition (Basic Pitch → MIDI → MusicXML).
 
@@ -49,11 +69,9 @@ class SheetJob:
                                                      └→ error
     """
 
-    sheet_job_id: str
-    job_id: str  # Job parent (séparation audio)
-    stem: str  # Nom du stem (vocals, bass, etc.)
-    status: str = "pending"
-    error: Optional[str] = None
+    sheet_job_id: str = field(default_factory=lambda: str(uuid4()))
+    job_id: str = field(default_factory=lambda: str(uuid4()))
+    stem: str = ""
 
     def to_dict(self) -> dict:
         return {

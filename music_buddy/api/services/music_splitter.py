@@ -11,15 +11,16 @@ Responsabilités :
 """
 
 import logging
+import re
 import subprocess
 from pathlib import Path
 
-from api.models.job import Job
+from api.models.job import SplitterJob
 
 logger = logging.getLogger(__name__)
 
 
-def run(job: Job, input_path: Path, output_folder: Path) -> None:
+def run(job: SplitterJob, input_path: Path, output_folder: Path) -> None:
     """
     Sépare les pistes audio d'un fichier MP3 avec Demucs.
 
@@ -35,14 +36,13 @@ def run(job: Job, input_path: Path, output_folder: Path) -> None:
         output_folder: Dossier racine de sortie (ex: Path("separated")).
     """
     job.status = "processing"
-    job.progress = 5
+    job.progress = 0
     out_dir = output_folder / job.job_id
     out_dir.mkdir(parents=True, exist_ok=True)
 
     try:
-        logger.info(f"[{job.job_id}] Démarrage Demucs (modèle: {job.model})")
-
-        result = subprocess.run(
+        logger.info("[%s] Démarrage Demucs (modèle: %s)", job.job_id, job.model)
+        process = subprocess.Popen(
             [
                 "python3",
                 "-m",
@@ -53,15 +53,20 @@ def run(job: Job, input_path: Path, output_folder: Path) -> None:
                 str(output_folder),
                 str(input_path),
             ],
-            capture_output=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
             text=True,
-            check=False,
         )
 
-        job.progress = 80
+        for line in process.stdout or []:
+            match = re.search(r"(\d+)%", line)
+            if match:
+                job.progress = int(match.group(1))
 
-        if result.returncode != 0:
-            raise RuntimeError(result.stderr or "Erreur Demucs inconnue")
+        returncode = process.wait(timeout=3600)
+
+        if returncode != 0:
+            raise RuntimeError(process.stderr)
 
         # Demucs place les WAV dans : output_folder/<model>/<job_id>/stem.wav
         # On les déplace dans output_folder/<job_id>/stem.wav

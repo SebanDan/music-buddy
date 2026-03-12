@@ -49,27 +49,29 @@ def run(sheet_job: SheetJob, wav_path: Path, out_dir: Path) -> None:
         # ── Étape 1 : transcription audio → MIDI ──────────────────
         sheet_job.status = "transcribing"
         logger.info(
-            f"[{sheet_job.sheet_job_id}] Transcription Basic Pitch : {wav_path.name}"
+            "[%s] Transcription Basic Pitch : %s", sheet_job.sheet_job_id, wav_path.name
         )
         midi_path = _transcribe_to_midi(wav_path, out_dir, stem)
 
         # ── Étape 2 : nettoyage des artefacts ─────────────────────
         sheet_job.status = "cleaning"
-        logger.info(f"[{sheet_job.sheet_job_id}] Nettoyage MIDI")
+        logger.info("[%s] Nettoyage MIDI", sheet_job.sheet_job_id)
         _clean_midi(midi_path)
 
         # ── Étape 3 : export MusicXML ──────────────────────────────
         sheet_job.status = "rendering"
-        logger.info(f"[{sheet_job.sheet_job_id}] Export MusicXML")
+        logger.info("[%s] Export MusicXML", sheet_job.sheet_job_id)
         _midi_to_musicxml(midi_path, out_dir, stem)
 
         sheet_job.status = "done"
-        logger.info(f"[{sheet_job.sheet_job_id}] Partition générée pour '{stem}'")
+        logger.info("[%s] Partition générée pour '%s'", sheet_job.sheet_job_id, stem)
 
     except Exception as exc:
         sheet_job.status = "error"
         sheet_job.error = str(exc)
-        logger.error(f"[{sheet_job.sheet_job_id}] Erreur génération partition : {exc}")
+        logger.error(
+            "[%s] Erreur génération partition : %s", sheet_job.sheet_job_id, exc
+        )
 
 
 def _transcribe_to_midi(wav_path: Path, out_dir: Path, stem: str) -> Path:
@@ -106,7 +108,7 @@ def _clean_midi(midi_path: Path) -> None:
         ]
 
     total_after = sum(len(inst.notes) for inst in midi.instruments)
-    logger.debug(f"Nettoyage MIDI : {total_before} → {total_after} notes")
+    logger.debug("Nettoyage MIDI :  %s → %s notes", total_before, total_after)
 
     midi.write(str(midi_path))
 
