@@ -1,0 +1,41 @@
+name: ci
+
+on:
+  push:
+    branches:
+      - main
+
+env:
+  APP_DIR: ./music_buddy
+
+jobs:
+  check_formatting:
+    runs-on: ubuntu-latest
+    steps:
+  
+      - uses: actions/checkout@v2
+  
+      - name: Setup Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.11
+
+      - name: Install the latest version of uv
+        uses: astral-sh/setup-uv@v6
+
+      - name: Check Formatting
+        run: |
+          uvx black --check .
+          uvx isort --check-only .
+
+      - name: Check linting
+        run: |
+          uvx ruff check .
+
+      - name: Check Typing
+        run: |
+          uvx mypy .
+
+      - name: Check security
+        run: |
+          uvx bandit -r $APP_DIR
