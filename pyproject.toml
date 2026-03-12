@@ -1,5 +1,5 @@
 [project]
-name = "music-to-partoch"
+name = "music-buddy"
 version = "0.1.0"
 description = "Convert audio music files into separated instrument tracks and generate sheet music automatically."
 readme = "README.md"
@@ -41,4 +41,4 @@ requires = ["setuptools>=68.0"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
-include = ["webapp*"]
+include = ["music_buddy*"]
