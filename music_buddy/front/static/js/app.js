@@ -1,34 +1,21 @@
 /**
- * app.js
- * ------
- * Module principal. Gère :
- *   - L'état global de l'application (state)
- *   - L'initialisation au chargement
- *   - Les onglets de source (MP3 / YouTube)
- *   - Le chargement des modèles Demucs
- *   - Le drag & drop / sélection de fichier
- *   - Le lancement de la séparation et le polling de statut
- *   - Le bouton "Nouvelle musique"
- *   - Les toasts de notification
+ * app.js — module principal
+ * Gère : état global, zones UI, source tabs, modèles, split, polling, toasts.
  */
 
 // ─── État global ──────────────────────────────────────────────────────────────
-// Partagé entre tous les modules JS via window.App
-
 window.App = {
   state: {
-    file:            null,   // File object (upload MP3)
-    currentFileName: null,   // Nom affiché (MP3 ou titre YouTube)
+    file:            null,
+    currentFileName: null,
     model:           "htdemucs",
     jobId:           null,
     isPlaying:       false,
     startOffset:     0,
     startTime:       0,
     duration:        0,
-    stems:           [],     // [{ name, gainNode, eq, buffer, source, muted, volume }]
+    stems:           [],
   },
-
-  // Métadonnées visuelles par stem
   STEM_META: {
     vocals: { icon: "🎤", color: "var(--col-vocals)" },
     drums:  { icon: "🥁", color: "var(--col-drums)"  },
@@ -39,9 +26,32 @@ window.App = {
   },
 };
 
-// ─── Source tabs (MP3 / YouTube) ──────────────────────────────────────────────
+// ─── Zones UI ─────────────────────────────────────────────────────────────────
 
-let activeSource = "mp3";
+/** Affiche la zone de séparation (cachée par défaut). */
+function showSplitZone() {
+  document.getElementById("zone-split").style.display = "block";
+  document.getElementById("zone-split").scrollIntoView({ behavior: "smooth", block: "nearest" });
+}
+
+/** Cache la zone de séparation. */
+function hideSplitZone() {
+  document.getElementById("zone-split").style.display = "none";
+}
+
+/** Affiche la zone mixer avec un titre optionnel. */
+function showMixerZone(title) {
+  const zone = document.getElementById("zone-mixer");
+  zone.style.display = "block";
+  if (title) document.getElementById("mixer-title").textContent = title;
+}
+
+document.getElementById("btn-show-split").addEventListener("click", showSplitZone);
+document.getElementById("btn-hide-split").addEventListener("click", hideSplitZone);
+
+// ─── Source tabs ──────────────────────────────────────────────────────────────
+
+let activeSource = "youtube"; // YouTube par défaut
 
 document.querySelectorAll(".source-tab").forEach(tab => {
   tab.addEventListener("click", () => {
@@ -65,7 +75,7 @@ function updateSplitBtn() {
     : !document.getElementById("yt-url").value.trim();
 }
 
-// ─── Chargement des modèles Demucs ────────────────────────────────────────────
+// ─── Modèles ──────────────────────────────────────────────────────────────────
 
 async function loadModels() {
   const res  = await fetch("/api/models");
@@ -94,7 +104,7 @@ async function loadModels() {
   });
 }
 
-// ─── Drag & Drop / Sélection fichier ──────────────────────────────────────────
+// ─── Drag & Drop / fichier ────────────────────────────────────────────────────
 
 const dropZone  = document.getElementById("drop-zone");
 const fileInput = document.getElementById("file-input");
@@ -107,57 +117,44 @@ dropZone.addEventListener("drop", e => {
   dropZone.classList.remove("drag-over");
   if (e.dataTransfer.files[0]) setFile(e.dataTransfer.files[0]);
 });
-fileInput.addEventListener("change", e => {
-  if (e.target.files[0]) setFile(e.target.files[0]);
-});
+fileInput.addEventListener("change", e => { if (e.target.files[0]) setFile(e.target.files[0]); });
 
 function setFile(f) {
-  if (!f.name.toLowerCase().endsWith(".mp3")) {
-    showToast("Seuls les fichiers MP3 sont acceptés !");
-    return;
-  }
+  if (!f.name.toLowerCase().endsWith(".mp3")) { showToast("Seuls les MP3 sont acceptés !"); return; }
   App.state.file = f;
   App.state.currentFileName = f.name;
-  fileLabel.textContent  = "📂 " + f.name;
+  fileLabel.textContent   = "📂 " + f.name;
   fileLabel.style.display = "block";
-  document.getElementById("split-btn").disabled = false;
+  updateSplitBtn();
 }
 
-// ─── Lancement de la séparation ───────────────────────────────────────────────
+// ─── Lancement séparation ─────────────────────────────────────────────────────
 
 document.getElementById("split-btn").addEventListener("click", startSplit);
 
 async function startSplit() {
   document.getElementById("split-btn").disabled = true;
 
-  // Réinitialise le mixer si un job précédent était affiché
+  // Réinitialise les pistes si besoin
   Mixer.stopAll();
-  App.state.stems    = [];
+  App.state.stems = [];
   App.state.duration = 0;
   App.state.startOffset = 0;
-  document.getElementById("mixer-section").style.display = "none";
-  document.getElementById("master-bar").style.display    = "none";
-  document.getElementById("tracks-grid").innerHTML        = "";
+  document.getElementById("zone-mixer").style.display = "none";
+  document.getElementById("master-bar").style.display = "none";
+  document.getElementById("tracks-grid").innerHTML    = "";
 
-  if (activeSource === "youtube") {
-    await _startYoutube();
-  } else {
-    await _startUpload();
-  }
+  activeSource === "youtube" ? await _startYoutube() : await _startUpload();
 }
 
 async function _startUpload() {
   if (!App.state.file) return;
-
   const form = new FormData();
   form.append("file",  App.state.file);
   form.append("model", App.state.model);
-
   showProgress(5, "Upload en cours…");
-
   try {
-    const res  = await fetch("/api/upload", { method: "POST", body: form });
-    const data = await res.json();
+    const data = await fetch("/api/upload", { method: "POST", body: form }).then(r => r.json());
     if (data.error) throw new Error(data.error);
     App.state.jobId = data.job_id;
     _pollStatus();
@@ -171,16 +168,12 @@ async function _startUpload() {
 async function _startYoutube() {
   const url = document.getElementById("yt-url").value.trim();
   if (!url) return;
-
-  showProgress(5, "Envoi de la requête…");
-
+  showProgress(5, "Envoi…");
   try {
-    const res  = await fetch("/api/youtube", {
-      method:  "POST",
-      headers: { "Content-Type": "application/json" },
-      body:    JSON.stringify({ url, model: App.state.model }),
-    });
-    const data = await res.json();
+    const data = await fetch("/api/youtube", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ url, model: App.state.model }),
+    }).then(r => r.json());
     if (data.error) throw new Error(data.error);
     App.state.jobId = data.job_id;
     App.state.currentFileName = url;
@@ -195,30 +188,26 @@ async function _startYoutube() {
 function _pollStatus() {
   const iv = setInterval(async () => {
     try {
-      const res  = await fetch(`/api/status/${App.state.jobId}`);
-      const data = await res.json();
+      const data = await fetch(`/api/status/${App.state.jobId}`).then(r => r.json());
 
       if (data.status === "downloading") {
-        showProgress(data.progress || 10, "⬇ Téléchargement YouTube en cours…");
-
+        showProgress(data.progress || 10, "⬇ Téléchargement YouTube…");
       } else if (data.status === "processing" || data.status === "pending") {
         showProgress(data.progress, "Séparation en cours… (peut prendre quelques minutes)");
-        // Récupère le titre YouTube une fois disponible
-        if (data.filename && App.state.currentFileName?.startsWith("http")) {
+        if (data.filename && App.state.currentFileName?.startsWith("http"))
           App.state.currentFileName = data.filename;
-        }
-
       } else if (data.status === "done") {
         clearInterval(iv);
         if (data.filename) App.state.currentFileName = data.filename;
         showProgress(100, "Terminé !");
         setTimeout(() => {
           hideProgress();
+          hideSplitZone();
+          showMixerZone(App.state.currentFileName || "Pistes");
           Mixer.build(data.stems);
           document.getElementById("split-btn").disabled = false;
           updateSplitBtn();
         }, 600);
-
       } else if (data.status === "error") {
         clearInterval(iv);
         hideProgress();
@@ -226,26 +215,22 @@ function _pollStatus() {
         document.getElementById("split-btn").disabled = false;
         updateSplitBtn();
       }
-    } catch (e) {
-      clearInterval(iv);
-      showToast("Erreur réseau");
-    }
+    } catch { clearInterval(iv); showToast("Erreur réseau"); }
   }, 1500);
 }
 
-// ─── Barre de progression ─────────────────────────────────────────────────────
+// ─── Progression ──────────────────────────────────────────────────────────────
 
 function showProgress(pct, label) {
   document.getElementById("progress-section").style.display = "block";
   document.getElementById("progress-fill").style.width      = pct + "%";
   document.getElementById("progress-label").textContent     = label;
 }
-
 function hideProgress() {
   document.getElementById("progress-section").style.display = "none";
 }
 
-// ─── Bouton "Nouvelle musique" ────────────────────────────────────────────────
+// ─── Réinitialisation ─────────────────────────────────────────────────────────
 
 document.getElementById("new-music-btn").addEventListener("click", () => {
   Mixer.stopAll();
@@ -253,31 +238,24 @@ document.getElementById("new-music-btn").addEventListener("click", () => {
     file: null, currentFileName: null, jobId: null,
     stems: [], duration: 0, startOffset: 0, isPlaying: false,
   });
-
-  ["mixer-section", "master-bar", "progress-section"].forEach(id => {
-    document.getElementById(id).style.display = "none";
-  });
-  document.getElementById("tracks-grid").innerHTML           = "";
-  document.getElementById("file-name").style.display         = "none";
-  document.getElementById("file-name").textContent           = "";
-  document.getElementById("file-input").value                = "";
-  document.getElementById("yt-url").value                    = "";
-  document.getElementById("split-btn").disabled              = true;
-  document.getElementById("seek-slider").value               = 0;
-  document.getElementById("time-current").textContent        = "0:00";
-  document.getElementById("time-total").textContent          = "0:00";
-  document.getElementById("master-play").textContent         = "▶";
-
+  document.getElementById("zone-mixer").style.display   = "none";
+  document.getElementById("zone-split").style.display   = "none";
+  document.getElementById("master-bar").style.display   = "none";
+  document.getElementById("progress-section").style.display = "none";
+  document.getElementById("tracks-grid").innerHTML      = "";
+  document.getElementById("file-name").style.display    = "none";
+  document.getElementById("file-input").value           = "";
+  document.getElementById("yt-url").value               = "";
+  document.getElementById("split-btn").disabled         = true;
+  document.getElementById("seek-slider").value          = 0;
+  document.getElementById("time-current").textContent   = "0:00";
+  document.getElementById("time-total").textContent     = "0:00";
+  document.getElementById("master-play").textContent    = "▶";
   window.scrollTo({ top: 0, behavior: "smooth" });
 });
 
-// ─── Toast de notification ────────────────────────────────────────────────────
+// ─── Toast ────────────────────────────────────────────────────────────────────
 
-/**
- * Affiche un message temporaire en bas de l'écran.
- * @param {string}  msg     Message à afficher.
- * @param {boolean} success Vert si true, rouge si false (défaut).
- */
 function showToast(msg, success = false) {
   const t = document.getElementById("toast");
   t.textContent   = msg;
@@ -285,11 +263,9 @@ function showToast(msg, success = false) {
   t.style.display = "block";
   setTimeout(() => { t.style.display = "none"; }, 3500);
 }
-
-// Exposé globalement pour être appelé depuis les autres modules
 window.showToast = showToast;
 
-// ─── Initialisation ───────────────────────────────────────────────────────────
+// ─── Init ─────────────────────────────────────────────────────────────────────
 
 loadModels();
 Sessions.load();

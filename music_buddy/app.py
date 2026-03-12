@@ -83,4 +83,4 @@ if __name__ == "__main__":
     webapp = create_app()
     print("\n🎵 Music Buddy")
     print("   → http://localhost:5000\n")
-    webapp.run(debug=True, port=5000)
+    webapp.run(debug=False, port=5000)
