@@ -1,18 +1,14 @@
 # 🎵 Music Buddy
 
+[![Python versions](https://img.shields.io/badge/python-3.11-blue)](https://docs.python.org/3/whatsnew/) [![Code style: Black](https://img.shields.io/badge/code%20style-Black-000000.svg)](https://github.com/psf/black) [![security: bandit](https://img.shields.io/badge/security-bandit-yellow.svg)](https://github.com/PyCQA/bandit)
+
 Webapp Python pour séparer les pistes audio avec [Demucs](https://github.com/facebookresearch/demucs).
 
 ## Installation
 
 ```bash
-# 1. Cloner / copier les fichiers dans un dossier
-cd demucs-studio
-
-# 2. Installer les dépendances
-pip install flask demucs
-
-# 3. Lancer le serveur
-python app.py
+uv sync
+uv run python app.py
 ```
 
 Puis ouvrir http://localhost:5000 dans votre navigateur.
@@ -33,16 +29,6 @@ Puis ouvrir http://localhost:5000 dans votre navigateur.
    - Téléchargez chaque piste en WAV
 
 ## Structure des fichiers
-
-```
-demucs-studio/
-├── app.py              ← serveur Flask (backend)
-├── requirements.txt    ← dépendances Python
-├── templates/
-│   └── index.html      ← interface (HTML + CSS + JS, tout en un)
-├── uploads/            ← créé automatiquement, MP3 temporaires
-└── separated/          ← créé automatiquement, WAV de sortie
-```
 
 ## Notes
 

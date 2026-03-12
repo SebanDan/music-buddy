@@ -3,3 +3,10 @@ repos:
     rev: v8.21.2
     hooks:
       - id: gitleaks
+
+  - repo: https://github.com/PyCQA/bandit
+    rev: '1.9.4'
+    hooks:
+    - id: bandit
+      args: ["-c", "pyproject.toml"]
+      additional_dependencies: ["bandit[toml]"]
