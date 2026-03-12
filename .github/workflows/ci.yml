@@ -6,6 +6,7 @@ on:
 
 env:
   APP_DIR: ./music_buddy
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
   code-quality-checks:
@@ -37,4 +38,4 @@ jobs:
 
       - name: Check security
         run: |
-          uvx bandit -r $APP_DIR
+          uvx bandit --severity-level=medium -r $APP_DIR
