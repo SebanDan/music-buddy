@@ -37,4 +37,4 @@ jobs:
 
       - name: Check security
         run: |
-          uvx bandit -r $APP_DIR -l medium
+          uvx bandit -r $APP_DIR
