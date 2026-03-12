@@ -7,12 +7,10 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;700;800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/static/css/style.css" />
-  <!-- Verovio WASM : rendu MusicXML → SVG dans le navigateur -->
   <script src="https://www.verovio.org/javascript/latest/verovio-toolkit-wasm.js" crossorigin="anonymous"></script>
 </head>
 <body>
 
-<!-- ── Header ──────────────────────────────────────────────────────── -->
 <header>
   <div class="logo-mark">
     <svg viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2.5" stroke-linecap="round">
@@ -26,82 +24,87 @@
 
 <main>
 
-  <!-- 0. Sessions sauvegardées -->
-  <div id="sessions-section">
-    <p class="section-title">Sessions sauvegardées</p>
-    <div class="sessions-list" id="sessions-list">
+  <!-- ── ZONE 1 : Sessions ──────────────────────────────────────── -->
+  <section class="zone" id="zone-sessions">
+    <div class="zone-title-row">
+      <span class="zone-label">Sessions</span>
+      <button class="btn-new-split" id="btn-show-split">+ Nouvelle séparation</button>
+    </div>
+    <div class="sessions-search-wrap">
+      <input type="text" id="sessions-search" placeholder="Rechercher…" autocomplete="off" />
+    </div>
+    <div class="sessions-rail" id="sessions-list">
       <p class="no-sessions">Chargement…</p>
     </div>
-  </div>
+  </section>
 
-  <!-- 1. Source audio -->
-  <p class="section-title">01 — Charger une source audio</p>
-
-  <div class="source-tabs">
-    <button class="source-tab active" data-tab="mp3">📁 Fichier MP3</button>
-    <button class="source-tab" data-tab="youtube">▶ Lien YouTube</button>
-  </div>
-
-  <div class="source-panel active" id="panel-mp3">
-    <div id="drop-zone">
-      <span class="drop-icon">🎵</span>
-      <h2>Glissez votre MP3 ici</h2>
-      <p>ou cliquez pour choisir un fichier</p>
-      <input type="file" id="file-input" accept=".mp3" />
+  <!-- ── ZONE 2 : Nouvelle séparation ──────────────────────────── -->
+  <section class="zone" id="zone-split" style="display:none">
+    <div class="zone-title-row">
+      <span class="zone-label">Nouvelle séparation</span>
+      <button class="btn-icon-close" id="btn-hide-split" title="Fermer">✕</button>
     </div>
-    <p id="file-name"></p>
-  </div>
 
-  <div class="source-panel" id="panel-youtube">
-    <div id="yt-input-wrap">
-      <div class="yt-label"><span>▶</span> URL YouTube</div>
-      <input type="url" id="yt-url" placeholder="https://www.youtube.com/watch?v=…" />
-      <p class="yt-hint">Collez le lien d'une vidéo YouTube — le son sera téléchargé automatiquement.</p>
+    <div class="source-tabs">
+      <button class="source-tab active" data-tab="youtube">▶ Lien YouTube</button>
+      <button class="source-tab" data-tab="mp3">📁 Fichier MP3</button>
     </div>
-  </div>
 
-  <!-- 2. Modèle Demucs -->
-  <div id="model-section">
-    <p class="section-title" style="margin-top:36px">02 — Choisir le modèle</p>
-    <div class="model-grid" id="model-grid"></div>
-  </div>
-
-  <!-- 3. Lancer la séparation -->
-  <button id="split-btn" disabled>⚡ Séparer les pistes</button>
-
-  <!-- 4. Barre de progression -->
-  <div id="progress-section">
-    <p class="section-title">Traitement en cours…</p>
-    <div class="progress-bar-track">
-      <div class="progress-bar-fill" id="progress-fill"></div>
+    <div class="source-panel active" id="panel-youtube">
+      <div id="yt-input-wrap">
+        <div class="yt-label"><span>▶</span> URL YouTube</div>
+        <input type="url" id="yt-url" placeholder="https://www.youtube.com/watch?v=…" />
+        <p class="yt-hint">Le son sera téléchargé automatiquement en MP3.</p>
+      </div>
     </div>
-    <p class="progress-label" id="progress-label">Initialisation…</p>
-  </div>
 
-  <!-- 5. Mixer -->
-  <div id="mixer-section">
-    <div class="mixer-title-row">
-      <p class="section-title" style="margin:0">03 — Mixer les pistes</p>
+    <div class="source-panel" id="panel-mp3">
+      <div id="drop-zone">
+        <span class="drop-icon">🎵</span>
+        <h2>Glissez votre MP3 ici</h2>
+        <p>ou cliquez pour choisir un fichier</p>
+        <input type="file" id="file-input" accept=".mp3" />
+      </div>
+      <p id="file-name"></p>
+    </div>
+
+    <div id="model-section">
+      <p class="section-title" style="margin-top:24px;margin-bottom:12px">Modèle</p>
+      <div class="model-grid" id="model-grid"></div>
+    </div>
+
+    <button id="split-btn" disabled>⚡ Séparer les pistes</button>
+
+    <div id="progress-section">
+      <div class="progress-bar-track">
+        <div class="progress-bar-fill" id="progress-fill"></div>
+      </div>
+      <p class="progress-label" id="progress-label">Initialisation…</p>
+    </div>
+  </section>
+
+  <!-- ── ZONE 3 : Pistes ────────────────────────────────────────── -->
+  <section class="zone" id="zone-mixer" style="display:none">
+    <div class="zone-title-row">
+      <span class="zone-label" id="mixer-title">Pistes</span>
       <div class="mixer-actions">
         <button id="btn-solo-all">Tout activer</button>
         <button id="btn-mute-all">Tout muter</button>
       </div>
     </div>
     <div class="tracks-grid" id="tracks-grid"></div>
-    <div>
-      <button id="save-session-btn">💾 Sauvegarder la session</button>
-      <button id="new-music-btn">↩ Nouvelle musique</button>
+    <div class="mixer-footer">
+      <button id="save-session-btn">💾 Sauvegarder</button>
+      <button id="new-music-btn">↩ Réinitialiser</button>
     </div>
-  </div>
+  </section>
 
 </main>
 
-<!-- ── Modale : visualiseur de partition ───────────────────────────── -->
+<!-- Modale partition -->
 <div id="sheet-modal">
   <div class="sheet-modal-header">
-    <div class="sheet-modal-title">
-      🎼 Partition — <span id="sheet-modal-stem-label">—</span>
-    </div>
+    <div class="sheet-modal-title">🎼 Partition — <span id="sheet-modal-stem-label">—</span></div>
     <a id="sheet-dl-link" class="sheet-dl-btn" download>↓ MusicXML</a>
     <button class="sheet-close-btn" id="sheet-modal-close">✕</button>
   </div>
@@ -111,7 +114,7 @@
   </div>
 </div>
 
-<!-- ── Modale : sauvegarde de session ──────────────────────────────── -->
+<!-- Modale sauvegarde -->
 <div id="save-modal">
   <div class="modal-box">
     <h3>💾 Sauvegarder la session</h3>
@@ -123,7 +126,7 @@
   </div>
 </div>
 
-<!-- ── Barre de lecture master (sticky bas de page) ────────────────── -->
+<!-- Master bar -->
 <div id="master-bar">
   <button id="master-play">▶</button>
   <div class="seek-wrap">
@@ -139,10 +142,8 @@
   </div>
 </div>
 
-<!-- ── Toast de notification ───────────────────────────────────────── -->
 <div id="toast"></div>
 
-<!-- ── Scripts JS (ordre important : mixer et sheets avant app) ─────── -->
 <script src="/static/js/mixer.js"></script>
 <script src="/static/js/sheets.js"></script>
 <script src="/static/js/sessions.js"></script>
