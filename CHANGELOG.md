@@ -2,6 +2,20 @@
 
 <!-- version list -->
 
+## v1.1.1 (2026-03-13)
+
+### Bug Fixes
+
+- Docker publish
+  ([`43b3e49`](https://github.com/SebanDan/music-buddy/commit/43b3e49268c0dcd9aa557421fc4da8edb4dfb607))
+
+- Docker publish
+  ([`0608139`](https://github.com/SebanDan/music-buddy/commit/06081390019c9a546b160e5b1eed9fc4950e8d10))
+
+- Docker publish
+  ([`89d2656`](https://github.com/SebanDan/music-buddy/commit/89d2656a5d86e4b75693825e151d1048aef0a9ef))
+
+
 ## v1.1.0 (2026-03-13)
 
 ### Bug Fixes
