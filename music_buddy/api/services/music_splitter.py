@@ -15,7 +15,7 @@ import re
 import subprocess
 from pathlib import Path
 
-from api.models.job import SplitterJob
+from music_buddy.api.models.job import SplitterJob
 
 logger = logging.getLogger(__name__)
 

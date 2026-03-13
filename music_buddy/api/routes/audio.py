@@ -13,10 +13,11 @@ import threading
 import uuid
 from pathlib import Path
 
-import api.services.music_splitter as splitter_service
-import api.services.youtube_manager as youtube_service
-from api.models.job import SplitterJob
 from flask import Blueprint, current_app, jsonify, request, send_from_directory
+
+import music_buddy.api.services.music_splitter as splitter_service
+import music_buddy.api.services.youtube_manager as youtube_service
+from music_buddy.api.models.job import SplitterJob
 
 audio_bp = Blueprint("audio", __name__)
 

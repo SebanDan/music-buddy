@@ -1,0 +1,14 @@
+services:
+  
+  music_buddy:
+    container_name: music-buddy
+    build: .
+    image: music-buddy:latest
+    ports:
+      - 5000:8000
+    volumes:
+      - models:/root/.cache
+      - ./music:/music
+
+volumes:
+  models:

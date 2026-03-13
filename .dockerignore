@@ -1,0 +1,28 @@
+.gitignore
+.git
+README.md
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+#js
+node_modules
+
+# Virtual environments
+.env
+.venv
+output/
+data/
+test/
+*.mp3
+*.wav
+.ruff_cache
+sessions/
+separated/
+uploads/
+.mypy_cache
+.DS_Store

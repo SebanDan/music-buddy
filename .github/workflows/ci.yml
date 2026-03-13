@@ -34,7 +34,7 @@ jobs:
 
       - name: Check Typing
         run: |
-          uvx mypy .
+          uvx mypy $APP_DIR
 
       - name: Check security
         run: |

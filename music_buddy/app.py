@@ -16,8 +16,9 @@ import json
 import logging
 from pathlib import Path
 
-from api.routes import audio_bp, sessions_bp, sheets_bp
 from flask import Flask, render_template
+
+from music_buddy.api.routes import audio_bp, sessions_bp, sheets_bp
 
 # ─── Configuration ────────────────────────────────────────────────────────────
 BASE_DIR = Path(__file__).parent

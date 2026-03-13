@@ -14,9 +14,10 @@ import threading
 import uuid
 from pathlib import Path
 
-import api.services.music_sheet as sheet_service
-from api.models.job import SheetJob
 from flask import Blueprint, current_app, jsonify, request, send_from_directory
+
+import music_buddy.api.services.music_sheet as sheet_service
+from music_buddy.api.models.job import SheetJob
 
 sheets_bp = Blueprint("sheets", __name__)
 

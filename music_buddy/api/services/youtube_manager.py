@@ -13,9 +13,10 @@ Responsabilités :
 import logging
 from pathlib import Path
 
-import api.services.music_splitter as splitter_service
-from api.models.job import SplitterJob
 from yt_dlp import YoutubeDL
+
+import music_buddy.api.services.music_splitter as splitter_service
+from music_buddy.api.models.job import SplitterJob
 
 logger = logging.getLogger(__name__)
 
