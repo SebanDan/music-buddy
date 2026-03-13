@@ -15,9 +15,10 @@ import logging
 from pathlib import Path
 
 import pretty_midi
-from api.models.job import SheetJob
 from basic_pitch.inference import predict
 from music21 import converter
+
+from music_buddy.api.models.job import SheetJob
 
 logger = logging.getLogger(__name__)
 
