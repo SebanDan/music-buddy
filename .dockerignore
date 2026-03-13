@@ -9,7 +9,11 @@ dist/
 wheels/
 *.egg-info
 
+#js
+node_modules
+
 # Virtual environments
+.env
 .venv
 output/
 data/
