@@ -1,6 +1,6 @@
 [project]
 name = "music-buddy"
-version = "1.1.0"
+version = "1.1.1"
 description = "Convert audio music files into separated instrument tracks and generate sheet music automatically."
 readme = "README.md"
 requires-python = ">=3.11"
