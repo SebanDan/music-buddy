@@ -13,6 +13,7 @@ Responsabilités :
 import logging
 import re
 import subprocess
+import sys
 from pathlib import Path
 
 from music_buddy.api.models.job import SplitterJob
@@ -42,9 +43,11 @@ def run(job: SplitterJob, input_path: Path, output_folder: Path) -> None:
 
     try:
         logger.info("[%s] Démarrage Demucs (modèle: %s)", job.job_id, job.model)
+
         process = subprocess.Popen(
             [
-                "python3",
+                sys.executable,
+                "-u",
                 "-m",
                 "demucs",
                 "--name",
@@ -58,15 +61,17 @@ def run(job: SplitterJob, input_path: Path, output_folder: Path) -> None:
             text=True,
         )
 
+        logs = []
         for line in process.stdout or []:
-            match = re.search(r"(\d+)%", line)
+            logs.append(line)
+            match = re.search(r"(\d{1,3})%", line)
             if match:
-                job.progress = int(match.group(1))
+                job.progress = min(int(match.group(1)), 100)
 
-        returncode = process.wait(timeout=3600)
+        returncode = process.wait(timeout=360)
 
         if returncode != 0:
-            raise RuntimeError(process.stderr)
+            raise RuntimeError("".join(logs))
 
         # Demucs place les WAV dans : output_folder/<model>/<job_id>/stem.wav
         # On les déplace dans output_folder/<job_id>/stem.wav
@@ -96,8 +101,7 @@ def run(job: SplitterJob, input_path: Path, output_folder: Path) -> None:
     except Exception as exc:
         job.status = "error"
         job.error = str(exc)
-        logger.error(f"[{job.job_id}] Erreur Demucs : {exc}")
-
+        logger.error(f"[{job.job_id}] Erreur Demucs : {exc}, logs {''.join(logs)}")
     finally:
         # Toujours supprimer le MP3 source après traitement
         _delete_input_file(input_path, job.job_id)
