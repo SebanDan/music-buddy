@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v1.2.1 (2026-03-17)
+
+### Bug Fixes
+
+- Docker image & torchcodec
+  ([`75dbe57`](https://github.com/SebanDan/music-buddy/commit/75dbe578ed9981929b7e03fb1a4b13533f1b47b5))
+
+
 ## v1.1.1 (2026-03-13)
 
 ### Bug Fixes
