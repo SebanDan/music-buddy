@@ -25,11 +25,10 @@ class Job:
             total = info.get("total_bytes") or info.get("total_bytes_estimate")
 
             if total:
-                percent = downloaded / total * 100
-                self.progress = 10 + percent * 0.8  # téléchargement = 10→90%
+                self.progress = downloaded / total * 100
 
         elif info["status"] == "finished":
-            self.progress = 90
+            self.progress = 100
 
 
 @dataclass

@@ -93,7 +93,7 @@ def save_session():
     """
     data = request.get_json() or {}
     job_id = data.get("job_id", "").strip()
-    name = (data.get("name") or "Sans titre").strip() or "Sans titre"
+    name = (data.get("name") or "Sans titre").strip()
     model = data.get("model", "")
     stems = data.get("stems", [])
 
