@@ -81,7 +81,7 @@ def download_and_split(
 
         with YoutubeDL(ydl_opts) as ydl:
             ydl.download([url])
-        
+
         job.progress = 100
         logger.info(f"[{job.job_id}] Téléchargement terminé : {input_path}")
 
