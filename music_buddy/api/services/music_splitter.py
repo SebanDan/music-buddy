@@ -11,6 +11,7 @@ Responsabilités :
 """
 
 import logging
+import os
 import re
 import subprocess
 import sys
@@ -19,6 +20,8 @@ from pathlib import Path
 from music_buddy.api.models.job import SplitterJob
 
 logger = logging.getLogger(__name__)
+
+os.environ["TORCHAUDIO_USE_BACKEND_DISPATCHER"] = "0"
 
 
 def run(job: SplitterJob, input_path: Path, output_folder: Path) -> None:

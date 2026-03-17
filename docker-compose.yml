@@ -8,7 +8,6 @@ services:
       - 5000:8000
     volumes:
       - models:/root/.cache
-      - ./music:/music
 
 volumes:
   models:
