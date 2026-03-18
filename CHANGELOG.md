@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v1.2.2 (2026-03-18)
+
+### Bug Fixes
+
+- Image weight
+  ([`d61d956`](https://github.com/SebanDan/music-buddy/commit/d61d956ff40d6a57bd666df7c57feabee9c6e22f))
+
+
 ## v1.2.1 (2026-03-17)
 
 ### Bug Fixes
