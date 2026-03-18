@@ -10,7 +10,7 @@ COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 
 COPY pyproject.toml uv.lock* ./
 
-COPY music_buddy .
+COPY music_buddy ./music_buddy
 
 EXPOSE 8000
 

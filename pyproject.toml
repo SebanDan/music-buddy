@@ -19,7 +19,7 @@ dependencies = [
     "setuptools==80.10.2", # Required as long as pkg_resources is required by other dependencies. (e.g The pkg_resources package is slated for removal as early as 2025-11-30. Refrain from using this package or pin to Setuptools<81)
     "gunicorn>=25.1.0",
     "torchcodec>=0.10.0; sys_platform == 'darwin' or (sys_platform == 'linux' and platform_machine == 'x86_64')",
-
+    "torch>=2.4.1",
 ]
 
 [project.optional-dependencies]
@@ -58,6 +58,20 @@ required-environments = [
     "sys_platform == 'linux' and platform_machine == 'x86_64'",
     "sys_platform == 'darwin' and platform_machine == 'arm64'",
 ]
+
+[tool.uv.sources]
+torch = [
+    # Linux x86 → wheels CPU-only
+    { index = "pytorch-cpu", marker = "sys_platform == 'linux' and platform_machine == 'x86_64'" },
+]
+torchaudio = [
+    { index = "pytorch-cpu", marker = "sys_platform == 'linux' and platform_machine == 'x86_64'" },
+]
+
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
 
 [tool.black]
 line-length = 88
