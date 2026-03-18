@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v1.2.3 (2026-03-18)
+
+### Bug Fixes
+
+- Torch index
+  ([`85445fe`](https://github.com/SebanDan/music-buddy/commit/85445fe9bfe095177756998d16b08532c79896cd))
+
+
 ## v1.2.2 (2026-03-18)
 
 ### Bug Fixes
