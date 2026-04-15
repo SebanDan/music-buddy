@@ -32,7 +32,7 @@ window.Sessions = (() => {
     const container = document.getElementById("sessions-list");
 
     if (!sessions.length) {
-      container.innerHTML = '<p class="no-sessions">Aucune session — lancez une séparation pour commencer.</p>';
+      container.innerHTML = '<p class="no-sessions">Library is empty.</p>';
       return;
     }
 
@@ -50,7 +50,7 @@ window.Sessions = (() => {
         <div class="session-name">${sess.name}</div>
         <div class="session-meta">${sess.model} · ${sess.saved_at}</div>
         <div class="session-stems">${dots}</div>
-        <button class="session-del-btn" title="Supprimer">✕</button>
+        <button class="session-del-btn" title="Delete">✕</button>
       `;
 
       chip.addEventListener("click", e => {
@@ -91,7 +91,7 @@ window.Sessions = (() => {
     document.getElementById("mixer-title").textContent = sess.name;
     document.getElementById("zone-mixer").style.display = "block";
     await Mixer.build(sess.stems);
-    showToast(`✓ "${sess.name}" chargée !`, true);
+    showToast(`✓ "${sess.name}" loaded !`, true);
   }
 
   // ─── Sauvegarde ────────────────────────────────────────────────────────────
@@ -119,7 +119,7 @@ window.Sessions = (() => {
         }),
       }).then(r => r.json());
       if (data.error) throw new Error(data.error);
-      showToast("✓ Session sauvegardée !", true);
+      showToast("✓ Music saved !", true);
       load();
     } catch (e) {
       showToast("Erreur : " + e.message);

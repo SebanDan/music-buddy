@@ -83,7 +83,7 @@ window.Mixer = (() => {
           <div class="track-icon">${meta.icon}</div>
           <div class="track-name">${name}</div>
         </div>
-        <button class="mute-btn" id="mute-${name}" title="Mute">M</button>
+        <button class="mute-btn" id="mute-${name}" title="Mute">Mute</button>
       </div>
       <div class="volume-wrap">
         <div class="volume-label">
@@ -102,13 +102,13 @@ window.Mixer = (() => {
         </div>`).join("")}
       </div>
       <a class="download-btn" href="/audio/${App.state.jobId}/${name}" download="${name}.wav">
-        ↓ Télécharger ${name}.wav
+        ↓ Download ${name}.wav
       </a>
       ${isDrums
-        ? `<div class="no-sheet-label">Partition non disponible (drums)</div>`
+        ? `<div class="no-sheet-label"></div>`
         : `<div class="sheet-actions" id="sheet-actions-${name}">
-             <button class="sheet-btn" id="sheet-btn-${name}">🎼 Générer</button>
-             <button class="sheet-view-btn" id="sheet-view-btn-${name}" style="display:none" title="Voir">👁</button>
+             <button class="sheet-btn" id="sheet-btn-${name}">🎼 Generate</button>
+             <button class="sheet-view-btn" id="sheet-view-btn-${name}" style="display:none" title="Display">👁</button>
            </div>`
       }
     `;
@@ -142,7 +142,7 @@ window.Mixer = (() => {
       fetch(`/api/sheet/file/${App.state.jobId}/${name}`, { method: "HEAD" }).then(r => {
         if (r.ok) {
           document.getElementById(`sheet-view-btn-${name}`).style.display = "flex";
-          document.getElementById(`sheet-btn-${name}`).textContent = "🎼 Regénérer";
+          document.getElementById(`sheet-btn-${name}`).textContent = "🎼 Regenerate";
         }
       });
     }
