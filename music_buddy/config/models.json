@@ -1,14 +1,14 @@
 {
     "htdemucs": {
-        "label": "HT Demucs (4 pistes, rapide)",
+        "label": "HT Demucs (4 stems, fast)",
         "stems": ["vocals", "drums", "bass", "other"]
     },
     "htdemucs_6s": {
-        "label": "HT Demucs 6 stems (guitare + piano)",
+        "label": "HT Demucs 6 stems (guitar + piano)",
         "stems": ["vocals", "drums", "bass", "other", "guitar", "piano"]
     },
     "mdx_extra": {
-        "label": "MDX Extra (4 pistes, haute qualité)",
+        "label": "MDX Extra (4 stems, high quality)",
         "stems": ["vocals", "drums", "bass", "other"]
     }
 }
