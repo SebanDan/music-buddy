@@ -2,7 +2,11 @@ name: ci
 
 on:
   pull_request:
-    branches: [main]
+    branches:
+     - main
+  push:
+    branches:
+      - main
 
 env:
   APP_DIR: ./music_buddy
