@@ -1,6 +1,11 @@
 # 🎵 Music Buddy
 
-[![Python versions](https://img.shields.io/badge/python-3.11-blue)](https://docs.python.org/3/whatsnew/) [![Code style: Black](https://img.shields.io/badge/code%20style-Black-000000.svg)](https://github.com/psf/black) [![security: bandit](https://img.shields.io/badge/security-bandit-yellow.svg)](https://github.com/PyCQA/bandit) [![ci](https://github.com/SebanDan/music-buddy/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/SebanDan/music-buddy/actions/workflows/ci.yml)[![Release](https://github.com/SebanDan/music-buddy/actions/workflows/tag-release.yml/badge.svg?branch=main)](https://github.com/SebanDan/music-buddy/actions/workflows/tag-release.yml)[![Publish Docker image](https://github.com/SebanDan/music-buddy/actions/workflows/deploy-docker.yml/badge.svg)](https://github.com/SebanDan/music-buddy/actions/workflows/deploy-docker.yml)
+[![Python versions](https://img.shields.io/badge/python-3.11-blue)](https://docs.python.org/3/whatsnew/)
+[![Code style: Black](https://img.shields.io/badge/code%20style-Black-000000.svg)](https://github.com/psf/black)
+[![security: bandit](https://img.shields.io/badge/security-bandit-purple.svg)](https://github.com/PyCQA/bandit)
+[![CI](https://github.com/SebanDan/music-buddy/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/SebanDan/music-buddy/actions/workflows/ci.yml)
+[![Release](https://github.com/SebanDan/music-buddy/actions/workflows/tag-release.yml/badge.svg?branch=main)](https://github.com/SebanDan/music-buddy/actions/workflows/tag-release.yml)
+[![Publish Docker image](https://img.shields.io/github/actions/workflow/status/SebanDan/music-buddy/deploy-docker.yml?label=Docker%20Release)](https://github.com/SebanDan/music-buddy/actions/workflows/deploy-docker.yml)
 
 Python webapp for separating audio tracks with [Demucs](https://github.com/facebookresearch/demucs).
 
